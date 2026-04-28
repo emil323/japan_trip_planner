@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import type { Route } from "./+types/summary";
+import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import {
   Alert,
@@ -6,7 +7,6 @@ import {
   Button,
   Heading,
   HStack,
-  Loader,
   Switch,
   Tag,
 } from "@navikt/ds-react";
@@ -26,34 +26,32 @@ import {
   colorFor,
   defaultState,
   fmtShort,
-  loadState,
   todayISO,
 } from "../lib/trip";
+import { getTrip } from "../lib/firestore.server";
 import { flagForLocation } from "../lib/japan";
 
 export function meta() {
   return [{ title: "Oppsummering — Japan-reiseplanlegger" }];
 }
 
-export default function SummaryPage() {
+export async function loader(_: Route.LoaderArgs) {
+  // Ship the trip state in the initial HTML so the page works without a
+  // client round-trip — important in dev mode where Vite serves modules
+  // unbundled and a /api/trip fetch from useEffect hangs on connection slots.
+  try {
+    const state = await getTrip();
+    return { state };
+  } catch {
+    return { state: defaultState() };
+  }
+}
+
+export default function SummaryPage({ loaderData }: Route.ComponentProps) {
   const navigate = useNavigate();
-  const [state, setState] = useState<TripState>(defaultState());
-  const [hydrated, setHydrated] = useState(false);
+  const [state] = useState<TripState>(loaderData?.state ?? defaultState());
   const [hidePast, setHidePast] = useState(true);
   const today = todayISO();
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const persisted = await loadState();
-      if (cancelled) return;
-      if (persisted) setState(persisted);
-      setHydrated(true);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const offsets = useMemo(() => {
     const out: number[] = [];
@@ -78,14 +76,6 @@ export default function SummaryPage() {
     }
     return { plansCount, travelCount };
   }, [state.locations]);
-
-  if (!hydrated) {
-    return (
-      <div className="trip-wrap summary-wrap">
-        <Loader title="Laster …" />
-      </div>
-    );
-  }
 
   return (
     <div className="trip-wrap summary-wrap">
