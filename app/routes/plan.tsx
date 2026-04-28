@@ -127,6 +127,14 @@ function LocDatesEditor({
       checkOutPicker.setSelected(parseISO(checkOut));
     }
   }, [checkOut, checkOutPicker]);
+
+  // Local buffer for the nights input so the user can clear/retype on iOS
+  // without the controlled value snapping back on every keystroke. Commit
+  // happens on blur / Enter.
+  const [nightsInput, setNightsInput] = useState(String(nights));
+  useEffect(() => {
+    setNightsInput(String(nights));
+  }, [nights]);
   return (
     <div className="plan-dates">
       <DatePicker {...checkInPicker.datepickerProps} locale="nb">
@@ -150,14 +158,23 @@ function LocDatesEditor({
         size="small"
         type="number"
         inputMode="numeric"
+        pattern="[0-9]*"
         className="plan-dates-nights"
         min={nightsMin}
         max={nightsMax}
-        value={String(nights)}
+        value={nightsInput}
         disabled={disabled}
-        onChange={(e) => {
-          const n = parseInt(e.target.value, 10);
-          if (Number.isFinite(n)) onNightsChange(n);
+        onChange={(e) => setNightsInput(e.target.value)}
+        onBlur={() => {
+          const n = parseInt(nightsInput, 10);
+          if (Number.isFinite(n)) {
+            onNightsChange(n);
+          }
+          // Resync input from the (possibly clamped) external state on next render.
+          setNightsInput(String(nights));
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
         }}
       />
     </div>
