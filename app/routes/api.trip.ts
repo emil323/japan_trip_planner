@@ -28,6 +28,9 @@ export async function action({ request }: Route.ActionArgs) {
   }
   const header = request.headers.get("X-Goog-Authenticated-User-Email");
   const userEmail = header ? (header.split(":").pop() ?? null) : null;
-  await saveTrip(state, { clientId: obj.clientId, userEmail });
+  const result = await saveTrip(state, { clientId: obj.clientId, userEmail });
+  if (!result.ok) {
+    return Response.json({ ok: false, error: result.error }, { status: 503 });
+  }
   return Response.json({ ok: true });
 }

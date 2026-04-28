@@ -97,15 +97,19 @@ export function daysBetween(a: string, b: string): number {
 }
 
 export function defaultState(): TripState {
+  // Stable IDs (instead of newId()) so two independent calls produce the same
+  // state. This matters when Firestore is unreachable and we fall back to the
+  // default in multiple places (e.g. SSR loader and a separate API call) —
+  // random IDs would make /plan/:id 404 against the freshly-rendered page.
   return {
     totalDays: 21,
     arrival: todayISO(),
     locations: [
-      { id: newId(), name: "Fukuoka",   hotel: "", days: 4 },
-      { id: newId(), name: "Hiroshima", hotel: "", days: 3 },
-      { id: newId(), name: "Osaka",     hotel: "", days: 4 },
-      { id: newId(), name: "Kyoto",     hotel: "", days: 5 },
-      { id: newId(), name: "Tokyo",     hotel: "", days: 5 },
+      { id: "loc-fukuoka",   name: "Fukuoka",   hotel: "", days: 4 },
+      { id: "loc-hiroshima", name: "Hiroshima", hotel: "", days: 3 },
+      { id: "loc-osaka",     name: "Osaka",     hotel: "", days: 4 },
+      { id: "loc-kyoto",     name: "Kyoto",     hotel: "", days: 5 },
+      { id: "loc-tokyo",     name: "Tokyo",     hotel: "", days: 5 },
     ],
   };
 }

@@ -580,10 +580,10 @@ function LocationRow({
   );
 }
 
-export function TripPlanner() {
+export function TripPlanner({ initialState }: { initialState?: TripState } = {}) {
   const navigate = useNavigate();
-  const [hydrated, setHydrated] = useState(false);
-  const [state, setState] = useState<TripState>(() => defaultState());
+  const [hydrated, setHydrated] = useState(!!initialState);
+  const [state, setState] = useState<TripState>(() => initialState ?? defaultState());
   const [view, setView] = useState<ViewMode>("cards");
   // Track narrow viewports so we can force the cards view (the rows view has
   // 11 fixed columns and just doesn't fit on phones) and hide the view toggle.
@@ -600,8 +600,20 @@ export function TripPlanner() {
   // Lightweight live-sync notification ("Reisen ble oppdatert"). Auto-hides.
   const [remoteToast, setRemoteToast] = useState<string | null>(null);
 
-  // Load from Firestore (via /api/trip) after mount (client-only)
+  // If initialState was provided by the server loader, we're already hydrated;
+  // just read view preference from localStorage. Otherwise, fall back to the
+  // legacy client-side fetch (defensive — all routes that render TripPlanner
+  // now provide initialState).
   useEffect(() => {
+    if (initialState) {
+      try {
+        const v = window.localStorage.getItem("tripView:v1");
+        if (v === "rows" || v === "cards") setView(v);
+      } catch {
+        /* ignored */
+      }
+      return;
+    }
     let cancelled = false;
     (async () => {
       const loaded = await loadState();
@@ -618,7 +630,7 @@ export function TripPlanner() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialState]);
 
   // True when the most recent setState came from a remote SSE update — we
   // must NOT re-persist that change (would echo back to the writer and ping-pong forever).

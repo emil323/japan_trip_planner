@@ -57,19 +57,29 @@ export async function getTrip(): Promise<TripState> {
 export async function saveTrip(
   state: TripState,
   meta?: { clientId?: string; userEmail?: string | null },
-): Promise<void> {
+): Promise<{ ok: boolean; error?: string }> {
   const cleaned = JSON.parse(JSON.stringify(state)) as TripState;
-  await docRef().set(
-    {
-      ...cleaned,
-      _meta: {
-        clientId: meta?.clientId ?? null,
-        userEmail: meta?.userEmail ?? null,
-        updatedAt: Date.now(),
+  try {
+    await docRef().set(
+      {
+        ...cleaned,
+        _meta: {
+          clientId: meta?.clientId ?? null,
+          userEmail: meta?.userEmail ?? null,
+          updatedAt: Date.now(),
+        },
       },
-    },
-    { merge: false },
-  );
+      { merge: false },
+    );
+    return { ok: true };
+  } catch (err) {
+    // Most commonly: stale gcloud creds in dev (`invalid_rapt`). We swallow
+    // here so the action returns a clean JSON response instead of throwing
+    // an unhandled exception that pops the dev-overlay error every time the
+    // client persists its state.
+    console.error("[firestore] saveTrip failed", err);
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 // Server-side Firestore listener. Fires once with the current document and then
