@@ -226,13 +226,14 @@ body {
 }
 
 .trip-loc-card-head {
-  display: grid;
-  grid-template-columns: auto auto 1fr auto auto auto;
+  display: flex;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 10px;
 }
 
 .trip-loc-card-title {
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -1129,7 +1130,6 @@ body {
     min-height: 180px;
   }
   .trip-loc-card-head {
-    grid-template-columns: auto 1fr auto;
     gap: 8px;
   }
   /* Hide the drag handle on touch — drag-and-drop is unreliable there */
@@ -1222,7 +1222,7 @@ body {
     max-width: 32px;
   }
   .trip-loc-card-head {
-    grid-template-columns: auto 1fr;
+    gap: 6px;
   }
   /* Fields with units: let inputs grow to full width */
   .trip-loc-card-fields .navds-form-field,
