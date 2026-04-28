@@ -23,6 +23,10 @@ export function SegmentedSlider({ state, onBoundaryChange, onMoveLocation }: Pro
   const sliderRef = useRef<HTMLDivElement | null>(null);
   const segRefs = useRef<(HTMLDivElement | null)[]>([]);
   const dragState = useRef<{ boundaryIdx: number; rect: DOMRect } | null>(null);
+  // Timestamp of the last boundary-drag end. Used to swallow the synthesized
+  // click iOS Safari fires on touchend so dragging a handle doesn't navigate
+  // to whichever segment was under the finger when it lifted.
+  const lastDragEnd = useRef(0);
   // Single controlled Popover for plan previews. Re-anchors to whichever segment
   // is currently hovered/focused. Keeps DOM stable and avoids N popovers fighting.
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
@@ -82,6 +86,7 @@ export function SegmentedSlider({ state, onBoundaryChange, onMoveLocation }: Pro
       onBoundaryChange(ds.boundaryIdx, newLeft);
     };
     const onUp = () => {
+      if (dragState.current) lastDragEnd.current = Date.now();
       dragState.current = null;
     };
     window.addEventListener("mousemove", onMove);
@@ -168,7 +173,15 @@ export function SegmentedSlider({ state, onBoundaryChange, onMoveLocation }: Pro
         onMouseLeave={() => setHoverIdx((h) => (h === i ? null : h))}
         onFocus={() => setHoverIdx(i)}
         onBlur={() => setHoverIdx((h) => (h === i ? null : h))}
-        onClick={() => navigate(`/plan/${loc.id}`)}
+        onClick={(e) => {
+          // Swallow the synthesized click iOS fires after a boundary drag.
+          if (dragState.current || Date.now() - lastDragEnd.current < 300) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
+          navigate(`/plan/${loc.id}`);
+        }}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
