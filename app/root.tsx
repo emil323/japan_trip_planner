@@ -70,7 +70,6 @@ export default function App() {
   return (
     <>
       <header className="app-topbar">
-        <span className="app-topbar-brand">🗾 Japan-tur</span>
         <span className="app-topbar-spacer" />
         {others.length > 0 ? (
           <span

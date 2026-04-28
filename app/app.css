@@ -967,13 +967,6 @@ body {
   background: #ffffff;
   border-bottom: 1px solid #ececec;
   font-size: 13px;
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  backdrop-filter: blur(8px);
-}
-.app-topbar-brand {
-  font-weight: 600;
 }
 .app-topbar-spacer {
   flex: 1;
@@ -1079,9 +1072,6 @@ body {
     gap: 8px;
     font-size: 12px;
     flex-wrap: wrap;
-  }
-  .app-topbar-brand {
-    font-size: 14px;
   }
   .app-topbar-presence {
     max-width: 100%;
@@ -1210,16 +1200,6 @@ body {
 @media (max-width: 480px) {
   body {
     padding: 10px 8px 96px;
-  }
-  .app-topbar-brand {
-    font-size: 13px;
-  }
-  /* On the smallest phones, hide the brand label and just show the emoji */
-  .app-topbar-brand {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 32px;
   }
   .trip-loc-card-head {
     gap: 6px;
