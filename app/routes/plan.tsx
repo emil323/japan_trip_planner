@@ -9,6 +9,7 @@ import {
   Heading,
   Loader,
   Select,
+  Tag,
   TextField,
   useDatepicker,
 } from "@navikt/ds-react";
@@ -478,29 +479,6 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
         </BodyShort>
       ) : null}
 
-      {(() => {
-        const prevName = isFirst ? null : state.locations[idx - 1]?.name?.trim() || null;
-        const nextName = isLast ? null : state.locations[idx + 1]?.name?.trim() || null;
-        if (!prevName && !nextName) return null;
-        return (
-          <Alert variant="info" size="small" className="plan-overlap-alert">
-            <BodyShort size="small">
-              Hotellovernattinger deler dag på inn- og utsjekking.
-            </BodyShort>
-            {prevName ? (
-              <BodyShort size="small">
-                Innsjekking er samme dag som utsjekking fra «{prevName}».
-              </BodyShort>
-            ) : null}
-            {nextName ? (
-              <BodyShort size="small">
-                Utsjekking er samme dag som innsjekking på «{nextName}».
-              </BodyShort>
-            ) : null}
-          </Alert>
-        );
-      })()}
-
       {tripMismatch ? (
         <Alert variant="info" size="small">
           Antall netter ({state.totalDays}) stemmer ikke med fordelingen ({totalAllocated}). Gå tilbake og juster.
@@ -639,6 +617,10 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
               {days.map((d) => {
                 const dayPlans = plans.filter((p) => p.day === d);
                 const date = addDays(checkIn, d - 1);
+                const prevName = isFirst ? null : state.locations[idx - 1]?.name?.trim() || null;
+                const nextName = isLast ? null : state.locations[idx + 1]?.name?.trim() || null;
+                const isFirstDay = d === 1;
+                const isLastDay = d === loc.days;
                 return (
                   <div
                     key={d}
@@ -648,6 +630,21 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
                     <div className="plan-day-head">
                       <span className="plan-day-num">Dag {d}</span>
                       <span className="plan-day-date">{fmtShort(date)}</span>
+                      {isFirstDay && prevName ? (
+                        <Tag variant="alt2" size="xsmall" className="plan-day-tag">
+                          Utsjekk «{prevName}»
+                        </Tag>
+                      ) : null}
+                      {isFirstDay ? (
+                        <Tag variant="info" size="xsmall" className="plan-day-tag">
+                          Innsjekk
+                        </Tag>
+                      ) : null}
+                      {isLastDay && nextName ? (
+                        <Tag variant="warning" size="xsmall" className="plan-day-tag">
+                          Utsjekk neste morgen
+                        </Tag>
+                      ) : null}
                     </div>
                     <ul className="plan-list">
                       {dayPlans.length === 0 ? (

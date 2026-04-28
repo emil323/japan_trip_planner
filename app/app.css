@@ -628,10 +628,18 @@ body {
 }
 .plan-day-head {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
   border-bottom: 1px solid #e5e5e5;
   padding-bottom: 4px;
+}
+.plan-day-date {
+  margin-right: auto;
+}
+.plan-day-tag {
+  font-size: 11px;
 }
 .plan-day-num {
   font-weight: 600;
@@ -1264,12 +1272,6 @@ body {
 }
 .plan-dates-nights {
   max-width: 110px;
-}
-.plan-overlap-alert {
-  margin-top: 8px;
-}
-.plan-overlap-alert > div + div {
-  margin-top: 4px;
 }
 .plan-dates-locked-hint {
   margin: 4px 0 12px;
