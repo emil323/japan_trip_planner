@@ -165,7 +165,11 @@ export default function SummaryPage({ loaderData }: Route.ComponentProps) {
                     <HStack gap="space-8" align="center" wrap>
                       <Tag size="small" variant="neutral-moderate">
                         <CalendarIcon aria-hidden />{" "}
-                        {fmtShort(checkIn)} – {fmtShort(checkOut)}
+                        {loc.days === 1
+                          ? fmtShort(checkIn)
+                          : `${fmtShort(checkIn)} – ${fmtShort(addDays(checkIn, loc.days - 1))}`}
+                        {" · sjekker ut "}
+                        {fmtShort(checkOut)}
                       </Tag>
                       <Tag size="small" variant="info-moderate">
                         {loc.days} {loc.days === 1 ? "natt" : "netter"}

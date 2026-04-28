@@ -506,7 +506,11 @@ function LocationRow({
         {urlField(false)}
         {imageEl}
         <div className="trip-date-range">
-          {fmtShort(checkIn)} → {fmtShort(checkOut)}
+          {loc.days === 1
+            ? fmtShort(checkIn)
+            : `${fmtShort(checkIn)}–${fmtShort(addDays(checkIn, loc.days - 1))}`}
+          {" · ut "}
+          {fmtShort(checkOut)}
         </div>
         <div className="trip-days-pill">
           {loc.days} {loc.days === 1 ? "natt" : "netter"}
@@ -571,7 +575,11 @@ function LocationRow({
       <div className="trip-loc-card-foot">
         <span className="trip-loc-card-foot-label">Datoer</span>
         <span className="trip-date-range">
-          {fmtShort(checkIn)} → {fmtShort(checkOut)}
+          {loc.days === 1
+            ? fmtShort(checkIn)
+            : `${fmtShort(checkIn)}–${fmtShort(addDays(checkIn, loc.days - 1))}`}
+          {" · ut "}
+          {fmtShort(checkOut)}
         </span>
         <span className="trip-loc-card-foot-spacer" />
         {planBtn}
