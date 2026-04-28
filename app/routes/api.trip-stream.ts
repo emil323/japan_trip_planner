@@ -1,9 +1,24 @@
 import type { Route } from "./+types/api.trip-stream";
 import { subscribeTrip } from "../lib/firestore.server";
+import {
+  addConnection,
+  listPresence,
+  removeConnection,
+  subscribePresence,
+} from "../lib/presence.server";
 
 // Server-Sent Events stream. Pushes one `update` event with the current doc
-// as soon as we attach, then every change. EventSource on the client auto-reconnects.
+// as soon as we attach, then every change. Also pushes `presence` events
+// whenever the roster of connected clients changes. EventSource on the client
+// auto-reconnects.
 export async function loader({ request }: Route.LoaderArgs) {
+  const header = request.headers.get("X-Goog-Authenticated-User-Email");
+  const userEmail = header ? (header.split(":").pop() ?? null) : null;
+  const connectionId =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
       const enc = new TextEncoder();
@@ -26,18 +41,31 @@ export async function loader({ request }: Route.LoaderArgs) {
         }
       }, 25_000);
 
-      const unsubscribe = subscribeTrip(
+      const unsubscribeTrip = subscribeTrip(
         (state, meta) => send("update", { state, meta }),
         () => send("error", { message: "subscribe failed" }),
+      );
+
+      // Register this connection and stream presence updates.
+      addConnection(connectionId, userEmail);
+      send("presence", listPresence());
+      const unsubscribePresence = subscribePresence((users) =>
+        send("presence", users),
       );
 
       const close = () => {
         clearInterval(hb);
         try {
-          unsubscribe();
+          unsubscribeTrip();
         } catch {
           /* ignored */
         }
+        try {
+          unsubscribePresence();
+        } catch {
+          /* ignored */
+        }
+        removeConnection(connectionId);
         try {
           controller.close();
         } catch {

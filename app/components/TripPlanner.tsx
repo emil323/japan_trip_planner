@@ -34,9 +34,9 @@ import {
   parseISO,
   reconcile,
   saveState,
-  subscribeTrip,
   toISO,
 } from "../lib/trip";
+import { onTripUpdate } from "../lib/tripStream.client";
 import { getClientId } from "../lib/identity";
 import { flagForLocation, prefectureNameFor } from "../lib/japan";
 import { getCachedImages, setCachedImages } from "../lib/imageCache";
@@ -615,15 +615,15 @@ export function TripPlanner() {
     // The very first snapshot fires immediately on subscribe and reflects the
     // doc we just loaded — suppress its toast.
     let initial = true;
-    const unsubscribe = subscribeTrip((nextState, info) => {
-      if (info.fromClientId && info.fromClientId === myId) {
+    const unsubscribe = onTripUpdate(({ state: nextState, fromClientId, userEmail }) => {
+      if (fromClientId && fromClientId === myId) {
         initial = false;
         return;
       }
       skipNextSaveRef.current = true;
       setState(nextState);
       if (!initial) {
-        const who = info.userEmail ? info.userEmail : "noen andre";
+        const who = userEmail ? userEmail : "noen andre";
         setRemoteToast(`Reisen ble oppdatert av ${who}`);
       }
       initial = false;

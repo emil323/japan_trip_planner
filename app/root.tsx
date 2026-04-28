@@ -7,9 +7,14 @@ import {
   ScrollRestoration,
   useLoaderData,
 } from "react-router";
+import { useEffect, useState } from "react";
 
 import type { Route } from "./+types/root";
 import "./app.css";
+import {
+  onPresence,
+  type PresenceUser,
+} from "./lib/tripStream.client";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -52,11 +57,43 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   const data = useLoaderData<typeof loader>();
+  const [presence, setPresence] = useState<PresenceUser[]>([]);
+  useEffect(() => {
+    return onPresence(setPresence);
+  }, []);
+
+  // Hide our own email so the chip list shows just the *other* people online.
+  const others = data?.userEmail
+    ? presence.filter((p) => p.email !== data.userEmail)
+    : presence;
+
   return (
     <>
       <header className="app-topbar">
         <span className="app-topbar-brand">🗾 Japan-tur</span>
         <span className="app-topbar-spacer" />
+        {others.length > 0 ? (
+          <span
+            className="app-topbar-presence"
+            aria-label={`${others.length} andre pålogget`}
+          >
+            {others.map((p) => (
+              <span
+                key={p.email ?? "anon"}
+                className="presence-chip"
+                title={p.email ?? "Ukjent bruker"}
+              >
+                <span className="presence-chip-dot" aria-hidden />
+                <span className="presence-chip-label">
+                  {p.email ?? "Ukjent"}
+                </span>
+                {p.count > 1 ? (
+                  <span className="presence-chip-count">×{p.count}</span>
+                ) : null}
+              </span>
+            ))}
+          </span>
+        ) : null}
         <span className="app-topbar-user" title={data?.userEmail ?? "Lokal modus"}>
           {data?.userEmail ? (
             <>

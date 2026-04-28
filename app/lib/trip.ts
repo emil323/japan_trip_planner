@@ -127,7 +127,7 @@ export async function loadState(): Promise<TripState | null> {
 
 // Validate/clamp persisted plan data so bad values from older versions or hand-edited
 // localStorage can never crash the UI.
-function normalizeLocation(l: Location): Location {
+export function normalizeLocation(l: Location): Location {
   const days = Math.max(0, Math.floor(l.days || 0));
   const plans = Array.isArray(l.plans)
     ? l.plans
@@ -194,44 +194,6 @@ export async function saveState(s: TripState): Promise<void> {
   } catch {
     /* ignored — best-effort persistence; UI keeps working from in-memory state */
   }
-}
-
-// Open a Server-Sent Events connection to /api/trip/stream and receive trip
-// updates pushed from Firestore. The callback receives normalized state and
-// the clientId of whoever wrote it (so we can ignore echoes of our own writes).
-// EventSource auto-reconnects on disconnect.
-export function subscribeTrip(
-  onRemote: (
-    state: TripState,
-    info: { fromClientId: string | null; userEmail: string | null },
-  ) => void,
-  onError?: (e: Event) => void,
-): () => void {
-  if (typeof window === "undefined") return () => {};
-  const es = new EventSource("/api/trip/stream");
-  es.addEventListener("update", (e) => {
-    try {
-      const payload = JSON.parse((e as MessageEvent).data) as {
-        state: TripState;
-        meta?: {
-          clientId: string | null;
-          userEmail: string | null;
-          updatedAt: number;
-        };
-      };
-      const s = payload.state;
-      if (!s || !Array.isArray(s.locations)) return;
-      s.locations = s.locations.map((l) => normalizeLocation(l));
-      onRemote(s, {
-        fromClientId: payload.meta?.clientId ?? null,
-        userEmail: payload.meta?.userEmail ?? null,
-      });
-    } catch {
-      /* ignored */
-    }
-  });
-  if (onError) es.onerror = onError;
-  return () => es.close();
 }
 
 export function reconcile(s: TripState): TripState {
