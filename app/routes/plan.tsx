@@ -649,14 +649,14 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
                     </ul>
                     {(isFirstDay || (isLastDay && nextName)) ? (
                       <div className="plan-day-footer">
-                        {isFirstDay ? (
-                          <Tag variant="info" size="xsmall" className="plan-day-tag">
-                            Innsjekk
-                          </Tag>
-                        ) : null}
                         {isFirstDay && prevName ? (
                           <Tag variant="alt2" size="xsmall" className="plan-day-tag">
                             Utsjekk «{prevName}»
+                          </Tag>
+                        ) : null}
+                        {isFirstDay ? (
+                          <Tag variant="info" size="xsmall" className="plan-day-tag">
+                            Innsjekk
                           </Tag>
                         ) : null}
                         {isLastDay && nextName ? (
