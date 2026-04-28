@@ -1,4 +1,4 @@
-import { type DragEvent, useEffect, useMemo, useState } from "react";
+import { type DragEvent, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import type { Route } from "./+types/plan";
 import {
@@ -21,7 +21,6 @@ import {
   type TransitMode,
   type TripState,
   addDays,
-  daysBetween,
   defaultState,
   fmtShort,
   loadState,
@@ -30,6 +29,12 @@ import {
   saveState,
   toISO,
 } from "../lib/trip";
+import {
+  computeBounds,
+  setLocationCheckIn,
+  setLocationCheckOut,
+  setLocationNights,
+} from "../lib/planDates";
 import { getTrip } from "../lib/firestore.server";
 import { flagForLocation } from "../lib/japan";
 
@@ -213,13 +218,6 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
   const idx = state.locations.findIndex((l) => l.id === id);
   const loc = idx >= 0 ? state.locations[idx] : null;
 
-  const offsetBefore = useMemo(() => {
-    if (idx < 0) return 0;
-    let acc = 0;
-    for (let i = 0; i < idx; i++) acc += state.locations[i].days;
-    return acc;
-  }, [state.locations, idx]);
-
   const updatePlans = (mut: (plans: Plan[]) => Plan[]) => {
     setState((s) => ({
       ...s,
@@ -375,90 +373,40 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
   const planSuggestions = suggestions.filter((p) => p.kind !== "travel");
   const travelSuggestions = suggestions.filter((p) => p.kind === "travel");
   const flag = flagForLocation(loc.name, 48);
-  const checkIn = addDays(state.arrival, offsetBefore);
-  const checkOut = addDays(checkIn, loc.days);
   const totalAllocated = state.locations.reduce((a, l) => a + l.days, 0);
   // If the trip has wandered into an inconsistent state, surface it but don't block.
   const tripMismatch = totalAllocated !== state.totalDays;
 
   const days = Array.from({ length: loc.days }, (_, i) => i + 1);
 
-  // Indices for transferring nights between adjacent locations so changes
-  // here don't bleed into the trip's overall arrival/return dates.
-  const isFirst = idx === 0;
-  const isLast = idx === state.locations.length - 1;
-  const prevDays = isFirst ? 0 : state.locations[idx - 1].days;
-  const nextDays = isLast ? 0 : state.locations[idx + 1].days;
-
-  // Bounds for the pickers. All inclusive ISO strings.
-  // - check-in: anywhere from "prev location +1 night" to "this loc -1 night
-  //   before its check-out" (so both keep ≥1 night).
-  // - check-out: anywhere from "check-in +1 night" to "next loc -1 night
-  //   before its end" (so both keep ≥1 night).
-  // - For the first / last location the corresponding picker is disabled
-  //   because the boundary is locked to the trip's arrival / return date.
-  const checkInMin = isFirst ? checkIn : addDays(checkIn, -(prevDays - 1));
-  const checkInMax = isFirst ? checkIn : addDays(checkOut, -1);
-  const checkOutMin = isLast ? checkOut : addDays(checkIn, 1);
-  const checkOutMax = isLast ? checkOut : addDays(checkOut, nextDays - 1);
-
-  // The "Antall netter" field can grow up to (this.days + sibling.days - 1)
-  // because it borrows from the next (or previous, if this is the last)
-  // location while keeping that sibling at ≥1 night.
-  const onlyOneLoc = state.locations.length === 1;
-  const sibDays = isLast ? prevDays : nextDays;
-  const nightsMin = 1;
-  const nightsMax = onlyOneLoc ? 365 : Math.max(1, loc.days + sibDays - 1);
-
-  // Move `delta` nights between this location and `donorIdx`, clamping so
-  // both stay ≥1 night. Used by the date pickers and the nights TextField.
-  // When `donorIdx` is out of range and we're the only location we change
-  // totalDays directly (the trip itself grows or shrinks).
-  const transferNights = (delta: number, donorIdx: number) => {
-    if (delta === 0) return;
-    setState((s) => {
-      const locs = [...s.locations];
-      const cur = locs[idx];
-      if (donorIdx < 0 || donorIdx >= locs.length) {
-        // Single-location trip: editing nights moves the trip's return date.
-        const d = Math.max(1, Math.min(365, cur.days + delta));
-        locs[idx] = { ...cur, days: d };
-        return { ...s, locations: locs, totalDays: d };
-      }
-      const donor = locs[donorIdx];
-      const newCur = cur.days + delta;
-      const newDonor = donor.days - delta;
-      if (newCur < 1 || newDonor < 1) return s;
-      locs[idx] = { ...cur, days: newCur };
-      locs[donorIdx] = { ...donor, days: newDonor };
-      return { ...s, locations: locs };
-    });
-  };
+  // Date bounds and edit handlers come from the pure planDates module so they
+  // can be unit-tested without rendering React. The component just wires the
+  // helpers up to setState.
+  const bounds = computeBounds(state, idx);
+  const {
+    checkIn,
+    checkOut,
+    isFirst,
+    isLast,
+    checkInMin,
+    checkInMax,
+    checkOutMin,
+    checkOutMax,
+    nightsMin,
+    nightsMax,
+  } = bounds;
 
   const setDaysForLoc = (newDays: number) => {
-    if (!Number.isFinite(newDays) || loc.locked) return;
-    const d = Math.max(nightsMin, Math.min(nightsMax, Math.floor(newDays)));
-    if (d === loc.days) return;
-    // Borrow from the next location if available, otherwise the previous
-    // (last-location case), otherwise change totalDays (single-loc trip).
-    const donorIdx = onlyOneLoc ? -1 : isLast ? idx - 1 : idx + 1;
-    transferNights(d - loc.days, donorIdx);
+    const next = setLocationNights(state, idx, newDays);
+    if (next) setState(next);
   };
-
-  // Editing check-in moves nights between this loc and the previous one.
-  // Later check-in → previous grows, this shrinks (delta>0, donor=prev).
   const onCheckInChange = (iso: string) => {
-    if (!iso || isFirst || loc.locked) return;
-    const delta = daysBetween(checkIn, iso);
-    transferNights(-delta, idx - 1);
+    const next = setLocationCheckIn(state, idx, iso);
+    if (next) setState(next);
   };
-
-  // Editing check-out moves nights between this loc and the next one.
-  // Later check-out → this grows, next shrinks (delta>0, donor=next).
   const onCheckOutChange = (iso: string) => {
-    if (!iso || isLast || loc.locked) return;
-    const delta = daysBetween(checkOut, iso);
-    transferNights(delta, idx + 1);
+    const next = setLocationCheckOut(state, idx, iso);
+    if (next) setState(next);
   };
 
   return (
