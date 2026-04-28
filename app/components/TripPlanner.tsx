@@ -745,21 +745,6 @@ export function TripPlanner() {
     []
   );
 
-  const distributeEvenly = () =>
-    setState((s) => {
-      const n = s.locations.length;
-      if (n === 0) return s;
-      const base = Math.floor(s.totalDays / n);
-      let rem = s.totalDays - base * n;
-      return {
-        ...s,
-        locations: s.locations.map((l) => {
-          const d = base + (rem-- > 0 ? 1 : 0);
-          return applyDaysChange(l, d);
-        }),
-      };
-    });
-
   const offsets = useMemo(() => {
     const arr: number[] = [];
     let acc = 0;
@@ -820,9 +805,6 @@ export function TripPlanner() {
             onClick={() => navigate("/oppsummering")}
           >
             Oppsummering
-          </Button>
-          <Button variant="secondary" size="small" onClick={distributeEvenly}>
-            Fordel jevnt
           </Button>
         </div>
 
