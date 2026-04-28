@@ -1,6 +1,7 @@
 import { type DragEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import {
+  ActionMenu,
   BodyShort,
   Button,
   CopyButton,
@@ -18,8 +19,10 @@ import {
   ComponentIcon,
   ExclamationmarkTriangleIcon,
   ExternalLinkIcon,
+  MenuElipsisVerticalIcon,
   PadlockLockedIcon,
   PadlockUnlockedIcon,
+  TrashIcon,
 } from "@navikt/aksel-icons";
 import {
   type TripState,
@@ -377,19 +380,41 @@ function LocationRow({
     },
   };
 
-  const lockBtn = (
-    <Button
-      variant="tertiary"
-      size="small"
-      onClick={onToggleLock}
-      icon={
-        locked ? <PadlockLockedIcon aria-hidden /> : <PadlockUnlockedIcon aria-hidden />
-      }
-      title={locked ? "Lås opp" : "Lås"}
-      aria-label={locked ? "Lås opp sted" : "Lås sted"}
-      aria-pressed={locked}
-      data-color={locked ? "warning" : undefined}
-    />
+  const actionMenu = (
+    <ActionMenu>
+      <ActionMenu.Trigger>
+        <Button
+          variant="tertiary"
+          size="small"
+          icon={<MenuElipsisVerticalIcon aria-hidden />}
+          aria-label="Handlinger for sted"
+          title="Handlinger"
+        />
+      </ActionMenu.Trigger>
+      <ActionMenu.Content>
+        <ActionMenu.Item
+          onSelect={onToggleLock}
+          icon={
+            locked ? (
+              <PadlockUnlockedIcon aria-hidden />
+            ) : (
+              <PadlockLockedIcon aria-hidden />
+            )
+          }
+        >
+          {locked ? "Lås opp" : "Lås"}
+        </ActionMenu.Item>
+        <ActionMenu.Divider />
+        <ActionMenu.Item
+          variant="danger"
+          onSelect={onRemove}
+          disabled={locked}
+          icon={<TrashIcon aria-hidden />}
+        >
+          Fjern
+        </ActionMenu.Item>
+      </ActionMenu.Content>
+    </ActionMenu>
   );
 
   const planBtn = (
@@ -487,10 +512,7 @@ function LocationRow({
           {loc.days} {loc.days === 1 ? "natt" : "netter"}
         </div>
         {planBtn}
-        {lockBtn}
-        <Button variant="tertiary" size="small" onClick={onRemove} title="Fjern" aria-label="Fjern sted" disabled={locked}>
-          ✕
-        </Button>
+        {actionMenu}
       </div>
     );
   }
@@ -521,17 +543,14 @@ function LocationRow({
         <div className="trip-days-pill">
           {loc.days} {loc.days === 1 ? "natt" : "netter"}
         </div>
-        {lockBtn}
-        <Button
-          variant="tertiary"
-          size="small"
-          onClick={onRemove}
-          title="Fjern"
-          aria-label="Fjern sted"
-          disabled={locked}
-        >
-          ✕
-        </Button>
+        {locked ? (
+          <PadlockLockedIcon
+            aria-label="Låst"
+            title="Låst"
+            className="trip-loc-card-lock-indicator"
+          />
+        ) : null}
+        {actionMenu}
       </div>
 
       <div className="trip-loc-card-body">

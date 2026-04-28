@@ -1230,3 +1230,10 @@ body {
     width: 100%;
   }
 }
+
+/* Lock indicator next to the days pill on locked location cards */
+.trip-loc-card-lock-indicator {
+  color: var(--ax-text-warning, #a05a00);
+  font-size: 18px;
+  flex-shrink: 0;
+}
