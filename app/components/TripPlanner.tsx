@@ -839,6 +839,7 @@ export function TripPlanner({ initialState }: { initialState?: TripState } = {})
               const v = parseInt(e.target.value, 10);
               if (Number.isFinite(v) && v >= 1) setTotalDays(v);
             }}
+            className="trip-nights-input"
             style={{ width: 110 }}
           />
           <div className="trip-toolbar-spacer" />

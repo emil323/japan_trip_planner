@@ -1276,6 +1276,9 @@ body {
     gap: 10px;
   }
   .plan-dates-nights {
-    max-width: none;
+    display: none;
+  }
+  .trip-nights-input {
+    display: none;
   }
 }
