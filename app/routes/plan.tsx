@@ -46,24 +46,35 @@ export default function PlanPage() {
 
   const autoArrow = (s: string) => s.replace(/->/g, "→");
 
-  // Hydrate from localStorage and clear the location's plansWarning on first visit.
+  // Hydrate from Firestore (via /api/trip) and clear the location's plansWarning on first visit.
   useEffect(() => {
-    const loaded = loadState();
-    if (loaded) {
-      const idx = loaded.locations.findIndex((l) => l.id === id);
-      if (idx >= 0 && loaded.locations[idx].plansWarning) {
-        loaded.locations = loaded.locations.map((l, j) =>
-          j === idx ? { ...l, plansWarning: false } : l,
-        );
+    let cancelled = false;
+    (async () => {
+      const loaded = await loadState();
+      if (cancelled) return;
+      if (loaded) {
+        const idx = loaded.locations.findIndex((l) => l.id === id);
+        if (idx >= 0 && loaded.locations[idx].plansWarning) {
+          loaded.locations = loaded.locations.map((l, j) =>
+            j === idx ? { ...l, plansWarning: false } : l,
+          );
+        }
+        setState(loaded);
       }
-      setState(loaded);
-    }
-    setHydrated(true);
+      setHydrated(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
-  // Persist on change (only after hydration so we don't overwrite stored data).
+  // Persist on change (debounced; only after hydration so we don't overwrite stored data).
   useEffect(() => {
-    if (hydrated) saveState(state);
+    if (!hydrated) return;
+    const t = window.setTimeout(() => {
+      void saveState(state);
+    }, 400);
+    return () => window.clearTimeout(t);
   }, [state, hydrated]);
 
   const idx = state.locations.findIndex((l) => l.id === id);

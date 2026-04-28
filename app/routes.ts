@@ -7,4 +7,5 @@ export default [
   route("img-proxy", "routes/img-proxy.ts"),
   route("plan/:id", "routes/plan.tsx"),
   route("oppsummering", "routes/summary.tsx"),
+  route("api/trip", "routes/api.trip.ts"),
 ] satisfies RouteConfig;

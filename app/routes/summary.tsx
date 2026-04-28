@@ -39,9 +39,16 @@ export default function SummaryPage() {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const persisted = loadState();
-    if (persisted) setState(persisted);
-    setHydrated(true);
+    let cancelled = false;
+    (async () => {
+      const persisted = await loadState();
+      if (cancelled) return;
+      if (persisted) setState(persisted);
+      setHydrated(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const offsets = useMemo(() => {

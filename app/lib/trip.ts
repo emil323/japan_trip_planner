@@ -1,4 +1,3 @@
-export const STORAGE_KEY = "japan-trip-planner-v1";
 export const PALETTE = [
   "#d72631", "#e8833a", "#3a86ff", "#2a9d8f", "#7b2cbf",
   "#f4a261", "#06a77d", "#e76f51", "#5a189a", "#0077b6",
@@ -111,12 +110,12 @@ export function defaultState(): TripState {
   };
 }
 
-export function loadState(): TripState | null {
+export async function loadState(): Promise<TripState | null> {
   if (typeof window === "undefined") return null;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const s = JSON.parse(raw) as TripState;
+    const res = await fetch("/api/trip", { headers: { Accept: "application/json" } });
+    if (!res.ok) return null;
+    const s = (await res.json()) as TripState;
     if (!s || !Array.isArray(s.locations)) return null;
     if (!s.arrival) s.arrival = todayISO();
     s.locations = s.locations.map((l) => normalizeLocation(l));
@@ -183,9 +182,17 @@ export function applyDaysChange(loc: Location, newDays: number): Location {
   };
 }
 
-export function saveState(s: TripState): void {
+export async function saveState(s: TripState): Promise<void> {
   if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+  try {
+    await fetch("/api/trip", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(s),
+    });
+  } catch {
+    /* ignored — best-effort persistence; UI keeps working from in-memory state */
+  }
 }
 
 export function reconcile(s: TripState): TripState {

@@ -9,6 +9,7 @@
     "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
+    "@google-cloud/firestore": "^8.5.0",
     "@navikt/aksel-icons": "^8.10.2",
     "@navikt/ds-css": "^8.10.2",
     "@navikt/ds-react": "^8.10.2",

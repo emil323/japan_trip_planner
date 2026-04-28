@@ -565,22 +565,33 @@ export function TripPlanner() {
   const [state, setState] = useState<TripState>(() => defaultState());
   const [view, setView] = useState<ViewMode>("cards");
 
-  // Load from localStorage after mount (client-only)
+  // Load from Firestore (via /api/trip) after mount (client-only)
   useEffect(() => {
-    const loaded = loadState();
-    if (loaded) setState(loaded);
-    try {
-      const v = window.localStorage.getItem("tripView:v1");
-      if (v === "rows" || v === "cards") setView(v);
-    } catch {
-      /* ignored */
-    }
-    setHydrated(true);
+    let cancelled = false;
+    (async () => {
+      const loaded = await loadState();
+      if (cancelled) return;
+      if (loaded) setState(loaded);
+      try {
+        const v = window.localStorage.getItem("tripView:v1");
+        if (v === "rows" || v === "cards") setView(v);
+      } catch {
+        /* ignored */
+      }
+      setHydrated(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // Persist on change (only after hydration so we don't overwrite stored data)
+  // Persist on change (debounced; only after hydration so we don't overwrite stored data)
   useEffect(() => {
-    if (hydrated) saveState(state);
+    if (!hydrated) return;
+    const t = window.setTimeout(() => {
+      void saveState(state);
+    }, 400);
+    return () => window.clearTimeout(t);
   }, [state, hydrated]);
 
   useEffect(() => {
