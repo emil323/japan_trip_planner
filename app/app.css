@@ -136,6 +136,13 @@ body {
   position: absolute;
   transform: translateX(-50%);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.trip-tick--first {
+  transform: none;
+}
+.trip-tick--last {
+  transform: translateX(-100%);
 }
 
 .trip-toolbar {

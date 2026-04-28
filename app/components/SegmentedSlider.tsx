@@ -229,17 +229,29 @@ export function SegmentedSlider({ state, onBoundaryChange, onMoveLocation }: Pro
 
   const tickStep = total <= 14 ? 1 : total <= 30 ? 2 : Math.ceil(total / 15);
   const ticks: React.ReactNode[] = [];
-  for (let d = 0; d <= total; d += tickStep) {
+  // Make sure we always render a tick at the very end so the return date is
+  // visible. We pre-compute the days to render and then pick first/last for
+  // edge alignment so the labels don't spill past the slider edges.
+  const tickDays: number[] = [];
+  for (let d = 0; d <= total; d += tickStep) tickDays.push(d);
+  if (tickDays[tickDays.length - 1] !== total) tickDays.push(total);
+  tickDays.forEach((d, idx) => {
+    const isFirst = idx === 0;
+    const isLast = idx === tickDays.length - 1;
     ticks.push(
       <div
         key={d}
-        className="trip-tick"
+        className={
+          "trip-tick" +
+          (isFirst ? " trip-tick--first" : "") +
+          (isLast ? " trip-tick--last" : "")
+        }
         style={{ left: (d / total) * 100 + "%" }}
       >
         {fmtShort(addDays(state.arrival, d))}
-      </div>
+      </div>,
     );
-  }
+  });
 
   return (
     <>
