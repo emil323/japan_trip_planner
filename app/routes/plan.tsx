@@ -1,5 +1,5 @@
-import { type DragEvent, useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { type DragEvent, useEffect, useRef, useState } from "react";
+import { Link, useParams } from "react-router";
 import type { Route } from "./+types/plan";
 import {
   Alert,
@@ -110,14 +110,23 @@ function LocDatesEditor({
   // mount). When external state changes the bound dates — most notably when
   // editing "Antall netter" moves the check-out — we have to push the new
   // value into the picker manually via setSelected so the input refreshes.
-  const setInSelected = checkInPicker.setSelected;
-  const setOutSelected = checkOutPicker.setSelected;
+  // NOTE: setSelected has a fresh identity every render, so it can't go in
+  // the deps array (would cause an infinite loop). We track the last ISO we
+  // pushed in via a ref instead.
+  const lastInISO = useRef(checkIn);
+  const lastOutISO = useRef(checkOut);
   useEffect(() => {
-    setInSelected(parseISO(checkIn));
-  }, [checkIn, setInSelected]);
+    if (lastInISO.current !== checkIn) {
+      lastInISO.current = checkIn;
+      checkInPicker.setSelected(parseISO(checkIn));
+    }
+  }, [checkIn, checkInPicker]);
   useEffect(() => {
-    setOutSelected(parseISO(checkOut));
-  }, [checkOut, setOutSelected]);
+    if (lastOutISO.current !== checkOut) {
+      lastOutISO.current = checkOut;
+      checkOutPicker.setSelected(parseISO(checkOut));
+    }
+  }, [checkOut, checkOutPicker]);
   return (
     <div className="plan-dates">
       <DatePicker {...checkInPicker.datepickerProps} locale="nb">
@@ -157,7 +166,6 @@ function LocDatesEditor({
 
 export default function PlanPage({ loaderData }: Route.ComponentProps) {
   const params = useParams();
-  const navigate = useNavigate();
   const id = params.id || "";
   const [hydrated, setHydrated] = useState(!!loaderData?.state);
   const [state, setState] = useState<TripState>(
@@ -360,9 +368,10 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
       <div className="trip-wrap plan-wrap">
         <Alert variant="warning">Fant ikke stedet.</Alert>
         <div>
-          <Button onClick={() => navigate("/")} variant="secondary" icon={<ArrowLeftIcon aria-hidden />}>
-            Tilbake
-          </Button>
+          <Link to="/" className="plan-back-link plan-back-link--inline">
+            <ArrowLeftIcon aria-hidden />
+            <span>Tilbake</span>
+          </Link>
         </div>
       </div>
     );
@@ -412,14 +421,10 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
   return (
     <div className="trip-wrap plan-wrap">
       <div className="plan-head">
-        <Button
-          onClick={() => navigate("/")}
-          variant="tertiary"
-          size="small"
-          icon={<ArrowLeftIcon aria-hidden />}
-        >
-          Tilbake
-        </Button>
+        <Link to="/" className="plan-back-link">
+          <ArrowLeftIcon aria-hidden />
+          <span>Tilbake</span>
+        </Link>
         <span
           className="trip-flag-wrap plan-flag"
           style={{

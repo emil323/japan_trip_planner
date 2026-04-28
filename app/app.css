@@ -481,6 +481,24 @@ body {
   flex-wrap: wrap;
   gap: 12px;
 }
+.plan-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ax-text-action, #0067c5);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-size: 1rem;
+  padding: 4px 2px;
+  border-radius: 4px;
+}
+.plan-back-link:hover {
+  text-decoration-thickness: 2px;
+}
+.plan-back-link:focus-visible {
+  outline: 2px solid var(--ax-border-focus, #0067c5);
+  outline-offset: 2px;
+}
 .plan-flag {
   width: 36px;
   height: 28px;
