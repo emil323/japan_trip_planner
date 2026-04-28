@@ -1,0 +1,30 @@
+{
+  "name": "japan-trip-planner",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "react-router build",
+    "dev": "react-router dev",
+    "start": "react-router-serve ./build/server/index.js",
+    "typecheck": "react-router typegen && tsc"
+  },
+  "dependencies": {
+    "@navikt/aksel-icons": "^8.10.2",
+    "@navikt/ds-css": "^8.10.2",
+    "@navikt/ds-react": "^8.10.2",
+    "@react-router/node": "7.14.0",
+    "@react-router/serve": "7.14.0",
+    "isbot": "^5.1.36",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-router": "7.14.0"
+  },
+  "devDependencies": {
+    "@react-router/dev": "7.14.0",
+    "@types/node": "^22",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^5.9.3",
+    "vite": "^8.0.3"
+  }
+}
