@@ -1059,3 +1059,174 @@ body {
   color: #64748b;
   font-variant-numeric: tabular-nums;
 }
+
+/* =================================================================
+   Mobile responsiveness
+   Targets phones (max-width: 700px) and very small phones (480px).
+   The multi-column 'rows' view is forced off in the component on
+   small screens, so we only need to make 'cards' view, the slider,
+   the planning page, and the topbar work in narrow viewports.
+   ================================================================= */
+@media (max-width: 700px) {
+  body {
+    padding: 12px 10px 96px;
+  }
+
+  /* --- Topbar --- */
+  .app-topbar {
+    padding: 8px 10px;
+    gap: 8px;
+    font-size: 12px;
+    flex-wrap: wrap;
+  }
+  .app-topbar-brand {
+    font-size: 14px;
+  }
+  .app-topbar-presence {
+    max-width: 100%;
+    order: 3;
+    flex-basis: 100%;
+    margin-right: 0;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  .presence-chip {
+    max-width: 160px;
+    font-size: 11px;
+  }
+  .app-topbar-user {
+    max-width: 60%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* --- Live toast --- */
+  .live-toast {
+    top: auto;
+    bottom: 96px;
+    right: 10px;
+    left: 10px;
+    font-size: 13px;
+    padding: 10px 12px;
+    text-align: center;
+  }
+
+  /* --- Trip cards: stack image above fields, full width --- */
+  .trip-loc-cards {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .trip-loc-card {
+    padding: 12px;
+  }
+  .trip-loc-card-body {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .trip-hotel-img--card {
+    min-height: 180px;
+  }
+  .trip-loc-card-head {
+    grid-template-columns: auto 1fr auto;
+    gap: 8px;
+  }
+  /* Hide the drag handle on touch — drag-and-drop is unreliable there */
+  .trip-loc-card-head .trip-drag-handle,
+  .trip-loc-row .trip-drag-handle {
+    display: none;
+  }
+
+  /* --- Toolbar: full-width controls, button group wraps cleanly --- */
+  .trip-toolbar {
+    gap: 10px;
+  }
+  .trip-toolbar-spacer {
+    display: none;
+  }
+  /* The view toggle is hidden via JS on mobile; ensure no orphan space */
+  .trip-toolbar > * {
+    flex: 1 1 auto;
+  }
+
+  /* --- Slider: a touch taller for finger-friendly handles --- */
+  .trip-slider {
+    height: 72px;
+  }
+  .trip-handle {
+    width: 28px;
+    margin-left: -14px;
+  }
+  .trip-handle::after {
+    height: 44px;
+  }
+  .trip-tick {
+    /* avoid tick crowding by hiding every other one */
+    font-size: 10px;
+  }
+  .trip-seg {
+    font-size: 13px;
+  }
+
+  /* --- FAB: smaller and tucked in --- */
+  .trip-fab {
+    right: 16px;
+    bottom: 16px;
+    width: 52px;
+    height: 52px;
+    font-size: 28px;
+  }
+
+  /* --- Headings --- */
+  .trip-card {
+    padding: 16px;
+  }
+
+  /* --- Plan page --- */
+  .plan-flag {
+    width: 28px;
+    height: 22px;
+  }
+  .plan-title {
+    min-width: 0;
+    font-size: 18px;
+  }
+  .plan-section {
+    padding: 12px;
+    min-height: 0;
+  }
+  .plan-days {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  /* --- Summary page (extra polish) --- */
+  .summary-hero-stats {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    padding: 10px 8px 96px;
+  }
+  .app-topbar-brand {
+    font-size: 13px;
+  }
+  /* On the smallest phones, hide the brand label and just show the emoji */
+  .app-topbar-brand {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 32px;
+  }
+  .trip-loc-card-head {
+    grid-template-columns: auto 1fr;
+  }
+  /* Fields with units: let inputs grow to full width */
+  .trip-loc-card-fields .navds-form-field,
+  .trip-loc-card-fields .navds-text-field {
+    width: 100%;
+  }
+}

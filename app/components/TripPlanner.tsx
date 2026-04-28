@@ -566,6 +566,18 @@ export function TripPlanner() {
   const [hydrated, setHydrated] = useState(false);
   const [state, setState] = useState<TripState>(() => defaultState());
   const [view, setView] = useState<ViewMode>("cards");
+  // Track narrow viewports so we can force the cards view (the rows view has
+  // 11 fixed columns and just doesn't fit on phones) and hide the view toggle.
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 700px)");
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+  const effectiveView: ViewMode = isMobile ? "cards" : view;
   // Lightweight live-sync notification ("Reisen ble oppdatert"). Auto-hides.
   const [remoteToast, setRemoteToast] = useState<string | null>(null);
 
@@ -825,14 +837,15 @@ export function TripPlanner() {
             value={view}
             onChange={(v) => setView(v === "rows" ? "rows" : "cards")}
             aria-label="Visning"
+            style={isMobile ? { display: "none" } : undefined}
           >
             <ToggleGroup.Item value="cards" aria-label="Kortvisning" icon={<ComponentIcon aria-hidden />} />
             <ToggleGroup.Item value="rows" aria-label="Listevisning" icon={<BulletListIcon aria-hidden />} />
           </ToggleGroup>
         </HStack>
 
-        <div className={view === "cards" ? "trip-loc-cards" : "trip-loc-rows"}>
-          {view === "rows" ? (
+        <div className={effectiveView === "cards" ? "trip-loc-cards" : "trip-loc-rows"}>
+          {effectiveView === "rows" ? (
             <div className="trip-loc-row trip-loc-row-header" aria-hidden="true">
               <span />
               <span />
@@ -852,7 +865,7 @@ export function TripPlanner() {
               key={loc.id}
               loc={loc}
               index={i}
-              view={view}
+              view={effectiveView}
               checkIn={addDays(state.arrival, offsets[i])}
               checkOut={addDays(state.arrival, offsets[i] + loc.days)}
               onChange={(patch) => updateLoc(i, patch)}
