@@ -1,6 +1,6 @@
 // Maps Japanese city / region names → prefecture flag.
-// Flags are served via Wikimedia Commons Special:FilePath which 302-redirects
-// to a CDN-cached thumbnail. ?width=N returns a PNG thumbnail.
+// Flags are cached locally under public/flags/<key>.svg (originally pulled
+// from Wikimedia Commons, see scripts/fetch-flags.mjs).
 
 const PREFECTURE_FLAG_FILES: Record<string, string> = {
   hokkaido: "Flag_of_Hokkaido_Prefecture.svg",
@@ -125,10 +125,9 @@ export function findPrefectureKey(name: string): string | null {
   return null;
 }
 
-export function flagUrl(prefectureKey: string, width = 48): string {
-  const file = PREFECTURE_FLAG_FILES[prefectureKey];
-  if (!file) return "";
-  return `https://commons.wikimedia.org/wiki/Special:FilePath/${file}?width=${width}`;
+export function flagUrl(prefectureKey: string, _width = 48): string {
+  if (!PREFECTURE_FLAG_FILES[prefectureKey]) return "";
+  return `/flags/${prefectureKey}.svg`;
 }
 
 export function flagForLocation(name: string, width = 48): string | null {
