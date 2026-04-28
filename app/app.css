@@ -1265,15 +1265,6 @@ body {
 .plan-dates-nights {
   max-width: 110px;
 }
-.plan-dates-col {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 220px;
-}
-.plan-dates-hint {
-  margin: 0;
-}
 .plan-dates-locked-hint {
   margin: 4px 0 12px;
 }
