@@ -478,6 +478,29 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
         </BodyShort>
       ) : null}
 
+      {(() => {
+        const prevName = isFirst ? null : state.locations[idx - 1]?.name?.trim() || null;
+        const nextName = isLast ? null : state.locations[idx + 1]?.name?.trim() || null;
+        if (!prevName && !nextName) return null;
+        return (
+          <Alert variant="info" size="small" className="plan-overlap-alert">
+            <BodyShort size="small">
+              Hotellovernattinger deler dag på inn- og utsjekking.
+            </BodyShort>
+            {prevName ? (
+              <BodyShort size="small">
+                Innsjekking er samme dag som utsjekking fra «{prevName}».
+              </BodyShort>
+            ) : null}
+            {nextName ? (
+              <BodyShort size="small">
+                Utsjekking er samme dag som innsjekking på «{nextName}».
+              </BodyShort>
+            ) : null}
+          </Alert>
+        );
+      })()}
+
       {tripMismatch ? (
         <Alert variant="info" size="small">
           Antall netter ({state.totalDays}) stemmer ikke med fordelingen ({totalAllocated}). Gå tilbake og juster.

@@ -1265,6 +1265,12 @@ body {
 .plan-dates-nights {
   max-width: 110px;
 }
+.plan-overlap-alert {
+  margin-top: 8px;
+}
+.plan-overlap-alert > div + div {
+  margin-top: 4px;
+}
 .plan-dates-locked-hint {
   margin: 4px 0 12px;
 }
