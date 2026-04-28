@@ -964,8 +964,6 @@ body {
   align-items: center;
   gap: 12px;
   padding: 8px 18px;
-  background: #ffffff;
-  border-bottom: 1px solid #ececec;
   font-size: 13px;
 }
 .app-topbar-spacer {
