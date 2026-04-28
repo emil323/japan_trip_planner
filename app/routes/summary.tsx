@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import {
   Alert,
   BodyShort,
@@ -7,6 +7,7 @@ import {
   Heading,
   HStack,
   Loader,
+  Switch,
   Tag,
 } from "@navikt/ds-react";
 import {
@@ -26,6 +27,7 @@ import {
   defaultState,
   fmtShort,
   loadState,
+  todayISO,
 } from "../lib/trip";
 import { flagForLocation } from "../lib/japan";
 
@@ -37,6 +39,8 @@ export default function SummaryPage() {
   const navigate = useNavigate();
   const [state, setState] = useState<TripState>(defaultState());
   const [hydrated, setHydrated] = useState(false);
+  const [hidePast, setHidePast] = useState(true);
+  const today = todayISO();
 
   useEffect(() => {
     let cancelled = false;
@@ -86,14 +90,17 @@ export default function SummaryPage() {
   return (
     <div className="trip-wrap summary-wrap">
       <div className="summary-toolbar">
-        <Button
-          variant="secondary"
+        <Link to="/" className="plan-back-link">
+          <ArrowLeftIcon aria-hidden />
+          <span>Tilbake</span>
+        </Link>
+        <Switch
           size="small"
-          icon={<ArrowLeftIcon aria-hidden />}
-          onClick={() => navigate("/")}
+          checked={hidePast}
+          onChange={(e) => setHidePast(e.target.checked)}
         >
-          Tilbake
-        </Button>
+          Skjul tidligere dager
+        </Switch>
       </div>
 
       <header className="summary-hero">
@@ -115,6 +122,16 @@ export default function SummaryPage() {
 
       {state.locations.length === 0 ? (
         <Alert variant="info">Ingen steder lagt til enda.</Alert>
+      ) : hidePast &&
+        state.locations.every(
+          (_, i) =>
+            addDays(state.arrival, offsets[i] + state.locations[i].days) <=
+            today,
+        ) ? (
+        <Alert variant="info">
+          Alle dager er passert. Slå av «Skjul tidligere dager» for å se hele
+          reiseplanen.
+        </Alert>
       ) : (
         <div className="summary-list">
           {state.locations.map((loc, i) => {
@@ -123,7 +140,17 @@ export default function SummaryPage() {
             const flag = flagForLocation(loc.name, 32);
             const plans = loc.plans ?? [];
             const suggestions = plans.filter((p) => p.day === null);
-            const days = Array.from({ length: loc.days }, (_, k) => k + 1);
+            const allDays = Array.from({ length: loc.days }, (_, k) => k + 1);
+            // Each day starts on (arrival + offset + d - 1); the day is "past"
+            // once today is strictly after that calendar date.
+            const visibleDays = hidePast
+              ? allDays.filter(
+                  (d) => addDays(state.arrival, offsets[i] + d - 1) >= today,
+                )
+              : allDays;
+            const allPast = hidePast && visibleDays.length === 0;
+            // Skip locations whose check-out is in the past entirely.
+            if (allPast) return null;
             const accent = colorFor(i);
             return (
               <article
@@ -199,7 +226,7 @@ export default function SummaryPage() {
 
                 {loc.days > 0 ? (
                   <div className="summary-days">
-                    {days.map((d) => {
+                    {visibleDays.map((d) => {
                       const date = addDays(state.arrival, offsets[i] + d - 1);
                       const dayPlans = plans.filter((p) => p.day === d);
                       return (
