@@ -628,15 +628,18 @@ body {
 }
 .plan-day-head {
   display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
   border-bottom: 1px solid #e5e5e5;
   padding-bottom: 4px;
 }
-.plan-day-date {
-  margin-right: auto;
+.plan-day-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  border-top: 1px dashed #e5e5e5;
+  padding-top: 6px;
+  margin-top: 6px;
 }
 .plan-day-tag {
   font-size: 11px;

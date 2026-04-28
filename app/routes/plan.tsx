@@ -630,21 +630,6 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
                     <div className="plan-day-head">
                       <span className="plan-day-num">Dag {d}</span>
                       <span className="plan-day-date">{fmtShort(date)}</span>
-                      {isFirstDay && prevName ? (
-                        <Tag variant="alt2" size="xsmall" className="plan-day-tag">
-                          Utsjekk «{prevName}»
-                        </Tag>
-                      ) : null}
-                      {isFirstDay ? (
-                        <Tag variant="info" size="xsmall" className="plan-day-tag">
-                          Innsjekk
-                        </Tag>
-                      ) : null}
-                      {isLastDay && nextName ? (
-                        <Tag variant="warning" size="xsmall" className="plan-day-tag">
-                          Utsjekk neste morgen
-                        </Tag>
-                      ) : null}
                     </div>
                     <ul className="plan-list">
                       {dayPlans.length === 0 ? (
@@ -662,6 +647,25 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
                         ))
                       )}
                     </ul>
+                    {(isFirstDay || (isLastDay && nextName)) ? (
+                      <div className="plan-day-footer">
+                        {isFirstDay ? (
+                          <Tag variant="info" size="xsmall" className="plan-day-tag">
+                            Innsjekk
+                          </Tag>
+                        ) : null}
+                        {isFirstDay && prevName ? (
+                          <Tag variant="alt2" size="xsmall" className="plan-day-tag">
+                            Utsjekk «{prevName}»
+                          </Tag>
+                        ) : null}
+                        {isLastDay && nextName ? (
+                          <Tag variant="warning" size="xsmall" className="plan-day-tag">
+                            Utsjekk neste morgen
+                          </Tag>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
                 );
               })}
