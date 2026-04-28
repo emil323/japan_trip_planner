@@ -589,9 +589,17 @@ export function TripPlanner() {
     };
   }, []);
 
+  // True when the most recent setState came from a remote SSE update — we
+  // must NOT re-persist that change (would echo back to the writer and ping-pong forever).
+  const skipNextSaveRef = useRef(false);
+
   // Persist on change (debounced; only after hydration so we don't overwrite stored data)
   useEffect(() => {
     if (!hydrated) return;
+    if (skipNextSaveRef.current) {
+      skipNextSaveRef.current = false;
+      return;
+    }
     const t = window.setTimeout(() => {
       void saveState(state);
     }, 400);
@@ -604,10 +612,21 @@ export function TripPlanner() {
   useEffect(() => {
     if (!hydrated) return;
     const myId = getClientId();
-    const unsubscribe = subscribeTrip((nextState, fromClientId) => {
-      if (fromClientId && fromClientId === myId) return;
+    // The very first snapshot fires immediately on subscribe and reflects the
+    // doc we just loaded — suppress its toast.
+    let initial = true;
+    const unsubscribe = subscribeTrip((nextState, info) => {
+      if (info.fromClientId && info.fromClientId === myId) {
+        initial = false;
+        return;
+      }
+      skipNextSaveRef.current = true;
       setState(nextState);
-      setRemoteToast("Reisen ble oppdatert");
+      if (!initial) {
+        const who = info.userEmail ? info.userEmail : "noen andre";
+        setRemoteToast(`Reisen ble oppdatert av ${who}`);
+      }
+      initial = false;
     });
     return () => unsubscribe();
   }, [hydrated]);

@@ -201,7 +201,10 @@ export async function saveState(s: TripState): Promise<void> {
 // the clientId of whoever wrote it (so we can ignore echoes of our own writes).
 // EventSource auto-reconnects on disconnect.
 export function subscribeTrip(
-  onRemote: (state: TripState, fromClientId: string | null) => void,
+  onRemote: (
+    state: TripState,
+    info: { fromClientId: string | null; userEmail: string | null },
+  ) => void,
   onError?: (e: Event) => void,
 ): () => void {
   if (typeof window === "undefined") return () => {};
@@ -210,12 +213,19 @@ export function subscribeTrip(
     try {
       const payload = JSON.parse((e as MessageEvent).data) as {
         state: TripState;
-        meta?: { clientId: string | null; updatedAt: number };
+        meta?: {
+          clientId: string | null;
+          userEmail: string | null;
+          updatedAt: number;
+        };
       };
       const s = payload.state;
       if (!s || !Array.isArray(s.locations)) return;
       s.locations = s.locations.map((l) => normalizeLocation(l));
-      onRemote(s, payload.meta?.clientId ?? null);
+      onRemote(s, {
+        fromClientId: payload.meta?.clientId ?? null,
+        userEmail: payload.meta?.userEmail ?? null,
+      });
     } catch {
       /* ignored */
     }

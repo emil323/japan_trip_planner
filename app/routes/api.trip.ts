@@ -26,6 +26,8 @@ export async function action({ request }: Route.ActionArgs) {
   if (!Array.isArray(state.locations) || typeof state.totalDays !== "number") {
     return new Response("Invalid trip state", { status: 400 });
   }
-  await saveTrip(state, { clientId: obj.clientId });
+  const header = request.headers.get("X-Goog-Authenticated-User-Email");
+  const userEmail = header ? (header.split(":").pop() ?? null) : null;
+  await saveTrip(state, { clientId: obj.clientId, userEmail });
   return Response.json({ ok: true });
 }

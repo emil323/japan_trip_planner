@@ -19,7 +19,11 @@ function docRef() {
   return db().collection(COLLECTION).doc(DOC_ID);
 }
 
-export type TripMeta = { clientId: string | null; updatedAt: number };
+export type TripMeta = {
+  clientId: string | null;
+  userEmail: string | null;
+  updatedAt: number;
+};
 
 function projectState(data: Record<string, unknown> | undefined): TripState {
   if (!data || !Array.isArray(data.locations)) return defaultState();
@@ -34,6 +38,7 @@ function projectMeta(data: Record<string, unknown> | undefined): TripMeta {
   const m = (data?._meta ?? {}) as Partial<TripMeta>;
   return {
     clientId: typeof m.clientId === "string" ? m.clientId : null,
+    userEmail: typeof m.userEmail === "string" ? m.userEmail : null,
     updatedAt: typeof m.updatedAt === "number" ? m.updatedAt : 0,
   };
 }
@@ -51,7 +56,7 @@ export async function getTrip(): Promise<TripState> {
 
 export async function saveTrip(
   state: TripState,
-  meta?: { clientId?: string },
+  meta?: { clientId?: string; userEmail?: string | null },
 ): Promise<void> {
   const cleaned = JSON.parse(JSON.stringify(state)) as TripState;
   await docRef().set(
@@ -59,6 +64,7 @@ export async function saveTrip(
       ...cleaned,
       _meta: {
         clientId: meta?.clientId ?? null,
+        userEmail: meta?.userEmail ?? null,
         updatedAt: Date.now(),
       },
     },
