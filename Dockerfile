@@ -1,22 +1,28 @@
-FROM node:20-alpine AS development-dependencies-env
-COPY . /app
-WORKDIR /app
-RUN npm ci
+# syntax=docker/dockerfile:1.7
 
-FROM node:20-alpine AS production-dependencies-env
-COPY ./package.json package-lock.json /app/
+# ---- Builder ----
+FROM node:22-alpine AS builder
 WORKDIR /app
-RUN npm ci --omit=dev
+RUN corepack enable
 
-FROM node:20-alpine AS build-env
-COPY . /app/
-COPY --from=development-dependencies-env /app/node_modules /app/node_modules
-WORKDIR /app
-RUN npm run build
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
-FROM node:20-alpine
-COPY ./package.json package-lock.json /app/
-COPY --from=production-dependencies-env /app/node_modules /app/node_modules
-COPY --from=build-env /app/build /app/build
+COPY . .
+RUN pnpm run build
+RUN pnpm prune --prod
+
+
+# ---- Runtime ----
+FROM node:22-alpine AS runtime
 WORKDIR /app
-CMD ["npm", "run", "start"]
+ENV NODE_ENV=production
+ENV PORT=8080
+
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/build ./build
+COPY --from=builder /app/public ./public
+
+EXPOSE 8080
+CMD ["node", "node_modules/@react-router/serve/dist/cli.js", "./build/server/index.js"]
