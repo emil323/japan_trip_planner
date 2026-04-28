@@ -166,8 +166,9 @@ export default function SummaryPage() {
                       size="small"
                       icon={<PencilIcon aria-hidden />}
                       onClick={() => navigate(`/plan/${loc.id}`)}
+                      aria-label={`Planlegg ${loc.name || "stedet"}`}
                     >
-                      Planlegg
+                      <span className="summary-action-label">Planlegg</span>
                     </Button>
                   </div>
                 </header>

@@ -845,6 +845,15 @@ body {
   margin-left: auto;
 }
 
+@media (max-width: 600px) {
+  .summary-loc-titles {
+    min-width: 0;
+  }
+  .summary-action-label {
+    display: none;
+  }
+}
+
 .summary-hotel {
   display: flex;
   align-items: center;
