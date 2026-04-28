@@ -55,8 +55,8 @@ function LocDatesEditor({
   nights,
   disabled,
   // Bounds (ISO yyyy-mm-dd, inclusive). When the corresponding picker is
-  // disabled (first/last location) the bounds are still passed for the
-  // re-key to work and for the popup calendar to look sensible.
+  // disabled (first/last location) the bounds are still passed so the popup
+  // calendar looks sensible.
   checkInMin,
   checkInMax,
   checkOutMin,
@@ -85,10 +85,6 @@ function LocDatesEditor({
   onCheckOutChange: (iso: string) => void;
   onNightsChange: (n: number) => void;
 }) {
-  // Two independent Aksel datepickers. Re-keyed on the bound ISO + bounds so
-  // external state changes (e.g. nights changes that move check-out, or the
-  // bounds shifting because a sibling resized) refresh the popup's selected
-  // date and disabled days — useDatepicker only reads its options once.
   const checkInPicker = useDatepicker({
     defaultSelected: parseISO(checkIn),
     fromDate: parseISO(checkInMin),
@@ -105,13 +101,21 @@ function LocDatesEditor({
       if (d) onCheckOutChange(toISO(d));
     },
   });
+  // Aksel's useDatepicker is uncontrolled (it only reads defaultSelected on
+  // mount). When external state changes the bound dates — most notably when
+  // editing "Antall netter" moves the check-out — we have to push the new
+  // value into the picker manually via setSelected so the input refreshes.
+  const setInSelected = checkInPicker.setSelected;
+  const setOutSelected = checkOutPicker.setSelected;
+  useEffect(() => {
+    setInSelected(parseISO(checkIn));
+  }, [checkIn, setInSelected]);
+  useEffect(() => {
+    setOutSelected(parseISO(checkOut));
+  }, [checkOut, setOutSelected]);
   return (
     <div className="plan-dates">
-      <DatePicker
-        key={`in-${checkIn}-${checkInMin}-${checkInMax}`}
-        {...checkInPicker.datepickerProps}
-        locale="nb"
-      >
+      <DatePicker {...checkInPicker.datepickerProps} locale="nb">
         <DatePicker.Input
           {...checkInPicker.inputProps}
           label="Innsjekking"
@@ -119,11 +123,7 @@ function LocDatesEditor({
           disabled={disabled || checkInDisabled}
         />
       </DatePicker>
-      <DatePicker
-        key={`out-${checkOut}-${checkOutMin}-${checkOutMax}`}
-        {...checkOutPicker.datepickerProps}
-        locale="nb"
-      >
+      <DatePicker {...checkOutPicker.datepickerProps} locale="nb">
         <DatePicker.Input
           {...checkOutPicker.inputProps}
           label="Utsjekking"
