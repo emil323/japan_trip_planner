@@ -8,4 +8,5 @@ export default [
   route("plan/:id", "routes/plan.tsx"),
   route("oppsummering", "routes/summary.tsx"),
   route("api/trip", "routes/api.trip.ts"),
+  route("api/trip/stream", "routes/api.trip-stream.ts"),
 ] satisfies RouteConfig;

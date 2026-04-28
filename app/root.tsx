@@ -5,6 +5,7 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useLoaderData,
 } from "react-router";
 
 import type { Route } from "./+types/root";
@@ -22,6 +23,13 @@ export const links: Route.LinksFunction = () => [
     href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
   },
 ];
+
+export async function loader({ request }: Route.LoaderArgs) {
+  // IAP injects this header. Format: "accounts.google.com:user@example.com".
+  const raw = request.headers.get("X-Goog-Authenticated-User-Email") ?? "";
+  const userEmail = raw.includes(":") ? (raw.split(":").pop() ?? null) : raw || null;
+  return { userEmail };
+}
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -43,7 +51,26 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  return <Outlet />;
+  const data = useLoaderData<typeof loader>();
+  return (
+    <>
+      <header className="app-topbar">
+        <span className="app-topbar-brand">🗾 Japan-tur</span>
+        <span className="app-topbar-spacer" />
+        <span className="app-topbar-user" title={data?.userEmail ?? "Lokal modus"}>
+          {data?.userEmail ? (
+            <>
+              <span className="app-topbar-dot" aria-hidden />
+              {data.userEmail}
+            </>
+          ) : (
+            <span className="app-topbar-user--anon">Lokal modus</span>
+          )}
+        </span>
+      </header>
+      <Outlet />
+    </>
+  );
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {

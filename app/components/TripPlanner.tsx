@@ -34,8 +34,10 @@ import {
   parseISO,
   reconcile,
   saveState,
+  subscribeTrip,
   toISO,
 } from "../lib/trip";
+import { getClientId } from "../lib/identity";
 import { flagForLocation, prefectureNameFor } from "../lib/japan";
 import { getCachedImages, setCachedImages } from "../lib/imageCache";
 import { urlToDataUrl } from "../lib/imageData";
@@ -564,6 +566,8 @@ export function TripPlanner() {
   const [hydrated, setHydrated] = useState(false);
   const [state, setState] = useState<TripState>(() => defaultState());
   const [view, setView] = useState<ViewMode>("cards");
+  // Lightweight live-sync notification ("Reisen ble oppdatert"). Auto-hides.
+  const [remoteToast, setRemoteToast] = useState<string | null>(null);
 
   // Load from Firestore (via /api/trip) after mount (client-only)
   useEffect(() => {
@@ -593,6 +597,27 @@ export function TripPlanner() {
     }, 400);
     return () => window.clearTimeout(t);
   }, [state, hydrated]);
+
+  // Subscribe to live updates from Firestore. We ignore echoes of our own
+  // writes by comparing clientId. Only attach after hydration so the initial
+  // load wins over any racing snapshot.
+  useEffect(() => {
+    if (!hydrated) return;
+    const myId = getClientId();
+    const unsubscribe = subscribeTrip((nextState, fromClientId) => {
+      if (fromClientId && fromClientId === myId) return;
+      setState(nextState);
+      setRemoteToast("Reisen ble oppdatert");
+    });
+    return () => unsubscribe();
+  }, [hydrated]);
+
+  // Auto-dismiss the live-sync toast.
+  useEffect(() => {
+    if (!remoteToast) return;
+    const t = window.setTimeout(() => setRemoteToast(null), 3500);
+    return () => window.clearTimeout(t);
+  }, [remoteToast]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -730,6 +755,11 @@ export function TripPlanner() {
 
   return (
     <div className="trip-wrap">
+      {remoteToast ? (
+        <div className="live-toast" role="status" aria-live="polite">
+          {remoteToast}
+        </div>
+      ) : null}
       <div>
         <Heading size="large" level="1">
           🗾 Japan-reiseplanlegger

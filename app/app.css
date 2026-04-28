@@ -956,3 +956,66 @@ body {
     padding: 6px 4px;
   }
 }
+
+/* ---------- Topbar (shows IAP-authenticated user) ---------- */
+.app-topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 18px;
+  background: #ffffff;
+  border-bottom: 1px solid #ececec;
+  font-size: 13px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  backdrop-filter: blur(8px);
+}
+.app-topbar-brand {
+  font-weight: 600;
+}
+.app-topbar-spacer {
+  flex: 1;
+}
+.app-topbar-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #444;
+}
+.app-topbar-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #2ecc71;
+  box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.2);
+}
+.app-topbar-user--anon {
+  color: #888;
+  font-style: italic;
+}
+
+/* ---------- Live-sync toast ---------- */
+.live-toast {
+  position: fixed;
+  top: 56px;
+  right: 16px;
+  z-index: 100;
+  background: #1f2937;
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  font-size: 14px;
+  animation: live-toast-in 200ms ease-out;
+}
+@keyframes live-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

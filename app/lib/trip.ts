@@ -185,14 +185,43 @@ export function applyDaysChange(loc: Location, newDays: number): Location {
 export async function saveState(s: TripState): Promise<void> {
   if (typeof window === "undefined") return;
   try {
+    const { getClientId } = await import("./identity");
     await fetch("/api/trip", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(s),
+      body: JSON.stringify({ state: s, clientId: getClientId() }),
     });
   } catch {
     /* ignored — best-effort persistence; UI keeps working from in-memory state */
   }
+}
+
+// Open a Server-Sent Events connection to /api/trip/stream and receive trip
+// updates pushed from Firestore. The callback receives normalized state and
+// the clientId of whoever wrote it (so we can ignore echoes of our own writes).
+// EventSource auto-reconnects on disconnect.
+export function subscribeTrip(
+  onRemote: (state: TripState, fromClientId: string | null) => void,
+  onError?: (e: Event) => void,
+): () => void {
+  if (typeof window === "undefined") return () => {};
+  const es = new EventSource("/api/trip/stream");
+  es.addEventListener("update", (e) => {
+    try {
+      const payload = JSON.parse((e as MessageEvent).data) as {
+        state: TripState;
+        meta?: { clientId: string | null; updatedAt: number };
+      };
+      const s = payload.state;
+      if (!s || !Array.isArray(s.locations)) return;
+      s.locations = s.locations.map((l) => normalizeLocation(l));
+      onRemote(s, payload.meta?.clientId ?? null);
+    } catch {
+      /* ignored */
+    }
+  });
+  if (onError) es.onerror = onError;
+  return () => es.close();
 }
 
 export function reconcile(s: TripState): TripState {

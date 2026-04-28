@@ -20,10 +20,12 @@ export async function action({ request }: Route.ActionArgs) {
   if (!body || typeof body !== "object") {
     return new Response("Invalid body", { status: 400 });
   }
-  const state = body as TripState;
+  // Accept either {state, clientId} or a bare TripState (backwards-compat).
+  const obj = body as { state?: TripState; clientId?: string } & TripState;
+  const state = (obj.state ?? obj) as TripState;
   if (!Array.isArray(state.locations) || typeof state.totalDays !== "number") {
     return new Response("Invalid trip state", { status: 400 });
   }
-  await saveTrip(state);
+  await saveTrip(state, { clientId: obj.clientId });
   return Response.json({ ok: true });
 }
