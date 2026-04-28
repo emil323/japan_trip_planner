@@ -70,6 +70,8 @@ function LocDatesEditor({
   checkOutDisabled,
   nightsMin,
   nightsMax,
+  prevName,
+  nextName,
   onCheckInChange,
   onCheckOutChange,
   onNightsChange,
@@ -86,6 +88,8 @@ function LocDatesEditor({
   checkOutDisabled: boolean;
   nightsMin: number;
   nightsMax: number;
+  prevName: string | null;
+  nextName: string | null;
   onCheckInChange: (iso: string) => void;
   onCheckOutChange: (iso: string) => void;
   onNightsChange: (n: number) => void;
@@ -137,22 +141,40 @@ function LocDatesEditor({
   }, [nights]);
   return (
     <div className="plan-dates">
-      <DatePicker {...checkInPicker.datepickerProps} locale="nb">
-        <DatePicker.Input
-          {...checkInPicker.inputProps}
-          label="Innsjekking"
-          size="small"
-          disabled={disabled || checkInDisabled}
-        />
-      </DatePicker>
-      <DatePicker {...checkOutPicker.datepickerProps} locale="nb">
-        <DatePicker.Input
-          {...checkOutPicker.inputProps}
-          label="Utsjekking"
-          size="small"
-          disabled={disabled || checkOutDisabled}
-        />
-      </DatePicker>
+      <div className="plan-dates-col">
+        <DatePicker {...checkInPicker.datepickerProps} locale="nb">
+          <DatePicker.Input
+            {...checkInPicker.inputProps}
+            label="Innsjekking"
+            size="small"
+            disabled={disabled || checkInDisabled}
+          />
+        </DatePicker>
+        <BodyShort size="small" textColor="subtle" className="plan-dates-hint">
+          {checkInDisabled
+            ? "Reisens første dag"
+            : prevName
+              ? `Samme dag som utsjekking fra «${prevName}»`
+              : "Samme dag som utsjekking fra forrige sted"}
+        </BodyShort>
+      </div>
+      <div className="plan-dates-col">
+        <DatePicker {...checkOutPicker.datepickerProps} locale="nb">
+          <DatePicker.Input
+            {...checkOutPicker.inputProps}
+            label="Utsjekking"
+            size="small"
+            disabled={disabled || checkOutDisabled}
+          />
+        </DatePicker>
+        <BodyShort size="small" textColor="subtle" className="plan-dates-hint">
+          {checkOutDisabled
+            ? "Reisens siste dag"
+            : nextName
+              ? `Samme dag som innsjekking på «${nextName}»`
+              : "Samme dag som innsjekking på neste sted"}
+        </BodyShort>
+      </div>
       <TextField
         label="Antall netter"
         size="small"
@@ -468,6 +490,8 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
         checkOutDisabled={isLast}
         nightsMin={nightsMin}
         nightsMax={nightsMax}
+        prevName={isFirst ? null : state.locations[idx - 1]?.name?.trim() || null}
+        nextName={isLast ? null : state.locations[idx + 1]?.name?.trim() || null}
         onCheckInChange={onCheckInChange}
         onCheckOutChange={onCheckOutChange}
         onNightsChange={setDaysForLoc}
