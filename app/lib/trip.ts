@@ -56,6 +56,7 @@ export type Location = {
   url?: string;
   imageUrl?: string;
   locked?: boolean;
+  includeCheckoutDay?: boolean;
   plans?: Plan[];
   plansWarning?: boolean;
 };
@@ -170,9 +171,10 @@ export function normalizeLocation(l: Location): Location {
 // Returns a new Location object; never mutates input.
 export function applyDaysChange(loc: Location, newDays: number): Location {
   const plans = loc.plans ?? [];
+  const maxDay = newDays + (loc.includeCheckoutDay ? 1 : 0);
   let changed = false;
   const nextPlans = plans.map((p) => {
-    if (p.day !== null && p.day > newDays) {
+    if (p.day !== null && p.day > maxDay) {
       changed = true;
       return { ...p, day: null };
     }

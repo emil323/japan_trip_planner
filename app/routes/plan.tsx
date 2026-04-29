@@ -9,6 +9,7 @@ import {
   Heading,
   Loader,
   Select,
+  Switch,
   Tag,
   TextField,
   useDatepicker,
@@ -404,7 +405,27 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
   // If the trip has wandered into an inconsistent state, surface it but don't block.
   const tripMismatch = totalAllocated !== state.totalDays;
 
-  const days = Array.from({ length: loc.days }, (_, i) => i + 1);
+  const includeCheckoutDay = !!loc.includeCheckoutDay;
+  const totalDayCount = loc.days + (includeCheckoutDay ? 1 : 0);
+  const days = Array.from({ length: totalDayCount }, (_, i) => i + 1);
+
+  const toggleIncludeCheckoutDay = (v: boolean) => {
+    setState({
+      ...state,
+      locations: state.locations.map((l, i) => {
+        if (i !== idx) return l;
+        if (v) {
+          return { ...l, includeCheckoutDay: true };
+        }
+        // Turning off: detach any plans that lived on the checkout day so they
+        // become suggestions instead of getting silently dropped.
+        const detached = (l.plans ?? []).map((p) =>
+          p.day !== null && p.day > l.days ? { ...p, day: null } : p,
+        );
+        return { ...l, includeCheckoutDay: false, plans: detached };
+      }),
+    });
+  };
 
   // Date bounds and edit handlers come from the pure planDates module so they
   // can be unit-tested without rendering React. The component just wires the
@@ -607,6 +628,14 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
           <BodyShort textColor="subtle" size="small">
             Én kolonne per dag. Dra forslag inn for å planlegge.
           </BodyShort>
+          <Switch
+            size="small"
+            checked={includeCheckoutDay}
+            onChange={(e) => toggleIncludeCheckoutDay(e.target.checked)}
+            className="plan-include-checkout"
+          >
+            Bruk utsjekkingsdato i {loc.name || "stedet"}
+          </Switch>
 
           {loc.days === 0 ? (
             <Alert variant="warning" size="small">
@@ -620,15 +649,16 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
                 const prevName = isFirst ? null : state.locations[idx - 1]?.name?.trim() || null;
                 const nextName = isLast ? null : state.locations[idx + 1]?.name?.trim() || null;
                 const isFirstDay = d === 1;
-                const isLastDay = d === loc.days;
+                const isCheckoutDay = includeCheckoutDay && d === totalDayCount;
+                const isLastNight = !includeCheckoutDay && d === totalDayCount;
                 return (
                   <div
                     key={d}
-                    className="plan-day"
+                    className={`plan-day${isCheckoutDay ? " plan-day-checkout" : ""}`}
                     {...dropTargetProps(d, `d-${d}`)}
                   >
                     <div className="plan-day-head">
-                      <span className="plan-day-num">Dag {d}</span>
+                      <span className="plan-day-num">{isCheckoutDay ? "Utsjekk" : `Dag ${d}`}</span>
                       <span className="plan-day-date">{fmtShort(date)}</span>
                     </div>
                     <ul className="plan-list">
@@ -647,7 +677,7 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
                         ))
                       )}
                     </ul>
-                    {(isFirstDay || (isLastDay && nextName) || (isLastDay && isLast)) ? (
+                    {(isFirstDay || isCheckoutDay || (isLastNight && nextName) || (isLastNight && isLast)) ? (
                       <div className="plan-day-footer">
                         {isFirstDay && prevName ? (
                           <Tag variant="alt2" size="xsmall" className="plan-day-tag">
@@ -659,12 +689,17 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
                             Innsjekk
                           </Tag>
                         ) : null}
-                        {isLastDay && nextName ? (
+                        {isLastNight && nextName ? (
                           <Tag variant="warning" size="xsmall" className="plan-day-tag">
                             Utsjekk neste morgen
                           </Tag>
                         ) : null}
-                        {isLastDay && isLast ? (
+                        {isCheckoutDay && nextName ? (
+                          <Tag variant="alt2" size="xsmall" className="plan-day-tag">
+                            Innsjekk «{nextName}»
+                          </Tag>
+                        ) : null}
+                        {((isLastNight && isLast) || (isCheckoutDay && isLast)) ? (
                           <Tag variant="neutral" size="xsmall" className="plan-day-tag">
                             Avreise
                           </Tag>

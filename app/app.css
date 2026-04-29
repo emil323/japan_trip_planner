@@ -644,6 +644,13 @@ body {
 .plan-day-tag {
   font-size: 11px;
 }
+.plan-day-checkout {
+  background: #fafafa;
+  border-style: dashed;
+}
+.plan-include-checkout {
+  margin-top: 4px;
+}
 .plan-day-num {
   font-weight: 600;
   font-size: 14px;
