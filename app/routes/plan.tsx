@@ -679,6 +679,28 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
                         ))
                       )}
                     </ul>
+                    {isFirstDay && prevName ? (() => {
+                      const prevLoc = state.locations[idx - 1];
+                      if (!prevLoc?.includeCheckoutDay) return null;
+                      const ghostPlans = (prevLoc.plans ?? []).filter(
+                        (p) => p.day === prevLoc.days + 1,
+                      );
+                      if (ghostPlans.length === 0) return null;
+                      return (
+                        <div className="plan-day-ghost">
+                          <BodyShort size="small" textColor="subtle" className="plan-day-ghost-label">
+                            Planlagt fra «{prevName}»
+                          </BodyShort>
+                          <ul className="plan-list plan-list-ghost">
+                            {ghostPlans.map((p) => (
+                              <li key={p.id} className="plan-item plan-item-ghost">
+                                {p.kind === "travel" ? (p.note?.trim() || "Reise") : p.title}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      );
+                    })() : null}
                     {isCheckoutDay && nextName ? (() => {
                       const nextLoc = state.locations[idx + 1];
                       const ghostPlans = (nextLoc?.plans ?? []).filter((p) => p.day === 1);
