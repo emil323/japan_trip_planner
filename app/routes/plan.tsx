@@ -512,9 +512,31 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
         {...(opts.noDrag ? {} : dropTargetProps(d, `d-${d}`))}
       >
         <div className="plan-day-head">
-          <span className="plan-day-num">{isCheckoutDay ? "Utsjekk" : `Dag ${d}`}</span>
+          <span className="plan-day-num">{isCheckoutDay ? "Reisedag" : `Dag ${d}`}</span>
           <span className="plan-day-date">{fmtShort(date)}</span>
         </div>
+        {isFirstDay && prevName ? (() => {
+          const prevLoc = state.locations[idx - 1];
+          if (!prevLoc?.includeCheckoutDay) return null;
+          const ghostPlans = (prevLoc.plans ?? []).filter(
+            (p) => p.day === prevLoc.days + 1,
+          );
+          if (ghostPlans.length === 0) return null;
+          return (
+            <div className="plan-day-ghost plan-day-ghost-top">
+              <BodyShort size="small" textColor="subtle" className="plan-day-ghost-label">
+                Planer i «{prevName}»
+              </BodyShort>
+              <ul className="plan-list plan-list-ghost">
+                {ghostPlans.map((p) => (
+                  <li key={p.id} className="plan-item plan-item-ghost">
+                    {p.kind === "travel" ? (p.note?.trim() || "Reise") : p.title}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })() : null}
         <ul className="plan-list">
           {dayPlans.length === 0 ? (
             <li className="plan-empty">{opts.noDrag ? "Ingen planer enda." : "Slipp her"}</li>
@@ -532,28 +554,6 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
             ))
           )}
         </ul>
-        {isFirstDay && prevName ? (() => {
-          const prevLoc = state.locations[idx - 1];
-          if (!prevLoc?.includeCheckoutDay) return null;
-          const ghostPlans = (prevLoc.plans ?? []).filter(
-            (p) => p.day === prevLoc.days + 1,
-          );
-          if (ghostPlans.length === 0) return null;
-          return (
-            <div className="plan-day-ghost">
-              <BodyShort size="small" textColor="subtle" className="plan-day-ghost-label">
-                Planlagt fra «{prevName}»
-              </BodyShort>
-              <ul className="plan-list plan-list-ghost">
-                {ghostPlans.map((p) => (
-                  <li key={p.id} className="plan-item plan-item-ghost">
-                    {p.kind === "travel" ? (p.note?.trim() || "Reise") : p.title}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          );
-        })() : null}
         {isCheckoutDay && nextName ? (() => {
           const nextLoc = state.locations[idx + 1];
           const ghostPlans = (nextLoc?.plans ?? []).filter((p) => p.day === 1);
@@ -561,7 +561,7 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
           return (
             <div className="plan-day-ghost">
               <BodyShort size="small" textColor="subtle" className="plan-day-ghost-label">
-                Allerede planlagt på «{nextName}»
+                Planer i «{nextName}»
               </BodyShort>
               <ul className="plan-list plan-list-ghost">
                 {ghostPlans.map((p) => (
@@ -830,7 +830,7 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
                         onClick={() => setActiveMobileDay(d)}
                       >
                         <span className="plan-mobile-pill-num">
-                          {isCheckoutDay ? "Utsjekk" : `Dag ${d}`}
+                          {isCheckoutDay ? "Reisedag" : `Dag ${d}`}
                         </span>
                         <span className="plan-mobile-pill-date">{fmtShort(date)}</span>
                       </button>
