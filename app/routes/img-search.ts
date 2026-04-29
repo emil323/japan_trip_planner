@@ -1,8 +1,17 @@
 import type { Route } from "./+types/img-search";
+import {
+  getCachedImageSearch,
+  isImageCacheStale,
+  saveCachedImageSearch,
+} from "../lib/firestore.server";
 
 // Resource route: GET /img-search?q=<query>
 // Server-side image search via DuckDuckGo (no API key, unofficial endpoint).
 // Returns the first reasonable image URL.
+//
+// Results are cached in Firestore (collection: imgSearchCache) keyed by a
+// slug of the query, so repeat lookups across sessions/users skip the
+// DuckDuckGo round-trip entirely.
 
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
@@ -13,6 +22,17 @@ export async function loader({ request }: Route.LoaderArgs) {
     return Response.json({ image: null, error: "missing_q" }, { status: 400 });
   }
   const query = q.trim().slice(0, 200);
+
+  // Fast path: serve cached results when fresh. We still hit DDG when the
+  // entry is stale (>30 days) so URLs don't rot indefinitely; the new
+  // result then overwrites the cache entry.
+  const cached = await getCachedImageSearch(query);
+  if (cached && !isImageCacheStale(cached) && cached.images.length > 0) {
+    return Response.json(
+      { image: cached.images[0] ?? null, images: cached.images, cached: true },
+      { headers: { "Cache-Control": "public, max-age=3600" } },
+    );
+  }
 
   try {
     // Step 1: get the vqd token from the HTML page
@@ -67,11 +87,26 @@ export async function loader({ request }: Route.LoaderArgs) {
       }
     }
 
+    // Persist the freshly-fetched results so subsequent lookups for the
+    // same query skip DuckDuckGo entirely. Fire-and-forget — a failed
+    // write must not block the response.
+    if (images.length > 0) {
+      void saveCachedImageSearch(query, images);
+    }
+
     return Response.json(
       { image: images[0] ?? null, images },
       { headers: { "Cache-Control": "public, max-age=3600" } }
     );
   } catch (e) {
+    // DDG failure: fall back to a stale cache entry if we have one, so the
+    // user still sees an image instead of an empty placeholder.
+    if (cached && cached.images.length > 0) {
+      return Response.json(
+        { image: cached.images[0] ?? null, images: cached.images, cached: "stale" },
+        { headers: { "Cache-Control": "public, max-age=300" } },
+      );
+    }
     return Response.json({ image: null, images: [], error: "search_failed" });
   }
 }

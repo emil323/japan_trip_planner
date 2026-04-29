@@ -100,3 +100,75 @@ export function subscribeTrip(
     },
   );
 }
+
+// --- Image-search result cache ---------------------------------------------
+//
+// We persist DuckDuckGo image search responses to Firestore so the same
+// query (e.g. "Osaka skyline") only hits DDG once across all sessions and
+// users. Subsequent lookups return the cached URL list directly, with a
+// month-long TTL after which we refresh in the background.
+
+const IMG_CACHE_COLLECTION = "imgSearchCache";
+const IMG_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+export type CachedImageSearch = {
+  images: string[];
+  updatedAt: number;
+};
+
+// Normalises and slugifies a query into a stable Firestore document id.
+// Firestore doc ids can't contain "/" or be longer than 1500 bytes; this
+// keeps them short and human-readable for debugging.
+export function imgCacheKey(query: string): string {
+  const norm = query
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 120);
+  return norm || "_empty";
+}
+
+export async function getCachedImageSearch(
+  query: string,
+): Promise<CachedImageSearch | null> {
+  try {
+    const snap = await db()
+      .collection(IMG_CACHE_COLLECTION)
+      .doc(imgCacheKey(query))
+      .get();
+    if (!snap.exists) return null;
+    const data = snap.data() as Partial<CachedImageSearch> | undefined;
+    if (!data || !Array.isArray(data.images) || typeof data.updatedAt !== "number") {
+      return null;
+    }
+    return { images: data.images, updatedAt: data.updatedAt };
+  } catch (err) {
+    console.warn("[firestore] getCachedImageSearch failed", err);
+    return null;
+  }
+}
+
+export async function saveCachedImageSearch(
+  query: string,
+  images: string[],
+): Promise<void> {
+  if (images.length === 0) return;
+  try {
+    await db()
+      .collection(IMG_CACHE_COLLECTION)
+      .doc(imgCacheKey(query))
+      .set({
+        images,
+        updatedAt: Date.now(),
+        query,
+      });
+  } catch (err) {
+    console.warn("[firestore] saveCachedImageSearch failed", err);
+  }
+}
+
+export function isImageCacheStale(cached: CachedImageSearch): boolean {
+  return Date.now() - cached.updatedAt > IMG_CACHE_TTL_MS;
+}
