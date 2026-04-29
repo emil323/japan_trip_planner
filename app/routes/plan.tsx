@@ -591,6 +591,11 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
               </Tag>
             ) : null}
             {isCheckoutDay && nextName ? (
+              <Tag variant="warning" size="xsmall" className="plan-day-tag">
+                Utsjekk
+              </Tag>
+            ) : null}
+            {isCheckoutDay && nextName ? (
               <Tag variant="alt2" size="xsmall" className="plan-day-tag">
                 Innsjekk «{nextName}»
               </Tag>
