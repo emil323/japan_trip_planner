@@ -299,6 +299,19 @@ body {
   cursor: grabbing;
 }
 
+.trip-drag-handle--locked {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+  color: var(--ax-text-warning, #a05a00);
+  font-size: 18px;
+}
+.trip-drag-handle--locked:hover {
+  background: transparent;
+  color: var(--ax-text-warning, #a05a00);
+}
+
 .trip-flag-wrap {
   display: inline-block;
   width: 40px;
@@ -1283,9 +1296,11 @@ body {
   .trip-loc-card-head {
     gap: 8px;
   }
-  /* Hide the drag handle on touch — drag-and-drop is unreliable there */
-  .trip-loc-card-head .trip-drag-handle,
-  .trip-loc-row .trip-drag-handle {
+  /* Hide the drag handle on touch — drag-and-drop is unreliable there.
+     Keep the locked-state lock icon visible since it's the only indicator
+     of locked state on mobile. */
+  .trip-loc-card-head .trip-drag-handle:not(.trip-drag-handle--locked),
+  .trip-loc-row .trip-drag-handle:not(.trip-drag-handle--locked) {
     display: none;
   }
 

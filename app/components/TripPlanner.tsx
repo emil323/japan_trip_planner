@@ -306,7 +306,15 @@ function LocationRow({
     />
   );
 
-  const dragHandle = (
+  const dragHandle = locked ? (
+    <span
+      className="trip-drag-handle trip-drag-handle--locked"
+      aria-label="Låst — kan ikke dras"
+      title="Låst"
+    >
+      <PadlockLockedIcon aria-hidden />
+    </span>
+  ) : (
     <button
       type="button"
       className="trip-drag-handle"
@@ -376,7 +384,7 @@ function LocationRow({
   );
 
   const wrapperProps = {
-    draggable,
+    draggable: locked ? false : draggable,
     onDragStart,
     onDragOver,
     onDrop,
@@ -553,13 +561,6 @@ function LocationRow({
         <div className="trip-days-pill">
           {loc.days} {loc.days === 1 ? "natt" : "netter"}
         </div>
-        {locked ? (
-          <PadlockLockedIcon
-            aria-label="Låst"
-            title="Låst"
-            className="trip-loc-card-lock-indicator"
-          />
-        ) : null}
         {actionMenu}
       </div>
 
