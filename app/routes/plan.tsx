@@ -56,6 +56,20 @@ export async function loader(_: Route.LoaderArgs) {
 
 const DRAG_MIME = "application/x-japan-plan-id";
 
+function useIsMobile(query = "(max-width: 700px)"): boolean {
+  // SSR-safe: starts false; resolves on the client after mount via matchMedia.
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mql = window.matchMedia(query);
+    const update = () => setIsMobile(mql.matches);
+    update();
+    mql.addEventListener("change", update);
+    return () => mql.removeEventListener("change", update);
+  }, [query]);
+  return isMobile;
+}
+
 function LocDatesEditor({
   checkIn,
   checkOut,
@@ -194,6 +208,9 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
   const [travelMode, setTravelMode] = useState<TransitMode>("shinkansen");
   const [travelNote, setTravelNote] = useState("");
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
+  const [activeMobileDay, setActiveMobileDay] = useState<number>(1);
+  const isMobile = useIsMobile();
+  const pillRowRef = useRef<HTMLDivElement | null>(null);
 
   const autoArrow = (s: string) => s.replace(/->/g, "→");
 
@@ -409,6 +426,25 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
   const totalDayCount = loc.days + (includeCheckoutDay ? 1 : 0);
   const days = Array.from({ length: totalDayCount }, (_, i) => i + 1);
 
+  // Reset to day 1 when navigating to a different location.
+  useEffect(() => {
+    setActiveMobileDay(1);
+  }, [id]);
+  // Clamp the active day if it falls out of range (e.g., toggle off checkout day).
+  useEffect(() => {
+    if (totalDayCount > 0 && activeMobileDay > totalDayCount) {
+      setActiveMobileDay(totalDayCount);
+    }
+  }, [totalDayCount, activeMobileDay]);
+  // Auto-scroll the active pill into view on mobile.
+  useEffect(() => {
+    if (!isMobile || !pillRowRef.current) return;
+    const el = pillRowRef.current.querySelector<HTMLElement>(
+      `[data-pill-day="${activeMobileDay}"]`,
+    );
+    el?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }, [isMobile, activeMobileDay]);
+
   const toggleIncludeCheckoutDay = (v: boolean) => {
     setState({
       ...state,
@@ -427,9 +463,7 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
     });
   };
 
-  // Date bounds and edit handlers come from the pure planDates module so they
-  // can be unit-tested without rendering React. The component just wires the
-  // helpers up to setState.
+
   const bounds = computeBounds(state, idx);
   const {
     checkIn,
@@ -455,6 +489,121 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
   const onCheckOutChange = (iso: string) => {
     const next = setLocationCheckOut(state, idx, iso);
     if (next) setState(next);
+  };
+
+  const prevName = isFirst ? null : state.locations[idx - 1]?.name?.trim() || null;
+  const nextName = isLast ? null : state.locations[idx + 1]?.name?.trim() || null;
+  const activeIsCheckout = includeCheckoutDay && activeMobileDay === totalDayCount;
+  const activeDayLabel = activeIsCheckout ? "utsjekkingsdagen" : `Dag ${activeMobileDay}`;
+  const onAddSuggestion = isMobile && totalDayCount > 0
+    ? (planId: string) => movePlan(planId, activeMobileDay)
+    : undefined;
+
+  const renderDayCard = (d: number, opts: { noDrag?: boolean } = {}) => {
+    const dayPlans = plans.filter((p) => p.day === d);
+    const date = addDays(checkIn, d - 1);
+    const isFirstDay = d === 1;
+    const isCheckoutDay = includeCheckoutDay && d === totalDayCount;
+    const isLastNight = !includeCheckoutDay && d === totalDayCount;
+    return (
+      <div
+        key={d}
+        className={`plan-day${isCheckoutDay ? " plan-day-checkout" : ""}`}
+        {...(opts.noDrag ? {} : dropTargetProps(d, `d-${d}`))}
+      >
+        <div className="plan-day-head">
+          <span className="plan-day-num">{isCheckoutDay ? "Utsjekk" : `Dag ${d}`}</span>
+          <span className="plan-day-date">{fmtShort(date)}</span>
+        </div>
+        <ul className="plan-list">
+          {dayPlans.length === 0 ? (
+            <li className="plan-empty">{opts.noDrag ? "Ingen planer enda." : "Slipp her"}</li>
+          ) : (
+            dayPlans.map((p) => (
+              <PlanItem
+                key={p.id}
+                plan={p}
+                onDragStart={onDragStart}
+                onRemove={removePlan}
+                onDropBefore={onDropBefore}
+                onEdit={editPlan}
+                noDrag={opts.noDrag}
+              />
+            ))
+          )}
+        </ul>
+        {isFirstDay && prevName ? (() => {
+          const prevLoc = state.locations[idx - 1];
+          if (!prevLoc?.includeCheckoutDay) return null;
+          const ghostPlans = (prevLoc.plans ?? []).filter(
+            (p) => p.day === prevLoc.days + 1,
+          );
+          if (ghostPlans.length === 0) return null;
+          return (
+            <div className="plan-day-ghost">
+              <BodyShort size="small" textColor="subtle" className="plan-day-ghost-label">
+                Planlagt fra «{prevName}»
+              </BodyShort>
+              <ul className="plan-list plan-list-ghost">
+                {ghostPlans.map((p) => (
+                  <li key={p.id} className="plan-item plan-item-ghost">
+                    {p.kind === "travel" ? (p.note?.trim() || "Reise") : p.title}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })() : null}
+        {isCheckoutDay && nextName ? (() => {
+          const nextLoc = state.locations[idx + 1];
+          const ghostPlans = (nextLoc?.plans ?? []).filter((p) => p.day === 1);
+          if (ghostPlans.length === 0) return null;
+          return (
+            <div className="plan-day-ghost">
+              <BodyShort size="small" textColor="subtle" className="plan-day-ghost-label">
+                Allerede planlagt på «{nextName}»
+              </BodyShort>
+              <ul className="plan-list plan-list-ghost">
+                {ghostPlans.map((p) => (
+                  <li key={p.id} className="plan-item plan-item-ghost">
+                    {p.kind === "travel" ? (p.note?.trim() || "Reise") : p.title}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })() : null}
+        {(isFirstDay || isCheckoutDay || (isLastNight && nextName) || (isLastNight && isLast)) ? (
+          <div className="plan-day-footer">
+            {isFirstDay && prevName ? (
+              <Tag variant="alt2" size="xsmall" className="plan-day-tag">
+                Utsjekk «{prevName}»
+              </Tag>
+            ) : null}
+            {isFirstDay ? (
+              <Tag variant="info" size="xsmall" className="plan-day-tag">
+                Innsjekk
+              </Tag>
+            ) : null}
+            {isLastNight && nextName ? (
+              <Tag variant="warning" size="xsmall" className="plan-day-tag">
+                Utsjekk neste morgen
+              </Tag>
+            ) : null}
+            {isCheckoutDay && nextName ? (
+              <Tag variant="alt2" size="xsmall" className="plan-day-tag">
+                Innsjekk «{nextName}»
+              </Tag>
+            ) : null}
+            {((isLastNight && isLast) || (isCheckoutDay && isLast)) ? (
+              <Tag variant="neutral" size="xsmall" className="plan-day-tag">
+                Avreise
+              </Tag>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    );
   };
 
   return (
@@ -515,7 +664,9 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
             Forslag
           </Heading>
           <BodyShort textColor="subtle" size="small">
-            Lag forslag her, dra dem inn i kalenderen.
+            {isMobile
+              ? `Trykk + for å legge til på ${activeDayLabel}.`
+              : "Lag forslag her, dra dem inn i kalenderen."}
           </BodyShort>
 
           <div className="plan-add">
@@ -556,6 +707,9 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
                   onRemove={removePlan}
                   onDropBefore={onDropBefore}
                   onEdit={editPlan}
+                  noDrag={isMobile}
+                  onAdd={onAddSuggestion ? () => onAddSuggestion(p.id) : undefined}
+                  addLabel={`Legg til på ${activeDayLabel}`}
                 />
               ))
             )}
@@ -613,7 +767,10 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
                     onDragStart={onDragStart}
                     onRemove={removePlan}
                     onDropBefore={onDropBefore}
-                  onEdit={editPlan}
+                    onEdit={editPlan}
+                    noDrag={isMobile}
+                    onAdd={onAddSuggestion ? () => onAddSuggestion(p.id) : undefined}
+                    addLabel={`Legg til på ${activeDayLabel}`}
                   />
                 ))
               )}
@@ -626,7 +783,9 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
             Kalender
           </Heading>
           <BodyShort textColor="subtle" size="small">
-            Én kolonne per dag. Dra forslag inn for å planlegge.
+            {isMobile
+              ? "Velg en dag og legg til forslag nedenfor."
+              : "Én kolonne per dag. Dra forslag inn for å planlegge."}
           </BodyShort>
           {!isLast ? (
             <Switch
@@ -643,115 +802,49 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
             <Alert variant="warning" size="small">
               Stedet har 0 netter. Øk antall netter for å kunne planlegge dager.
             </Alert>
+          ) : isMobile ? (
+            <div className="plan-mobile-calendar">
+              {totalDayCount > 1 ? (
+                <div
+                  className="plan-mobile-pills"
+                  ref={pillRowRef}
+                  role="tablist"
+                  aria-label="Velg dag"
+                >
+                  {days.map((d) => {
+                    const date = addDays(checkIn, d - 1);
+                    const isCheckoutDay = includeCheckoutDay && d === totalDayCount;
+                    const active = d === activeMobileDay;
+                    return (
+                      <button
+                        key={d}
+                        type="button"
+                        role="tab"
+                        aria-selected={active}
+                        data-pill-day={d}
+                        className={
+                          "plan-mobile-pill" +
+                          (active ? " plan-mobile-pill--active" : "") +
+                          (isCheckoutDay ? " plan-mobile-pill--checkout" : "")
+                        }
+                        onClick={() => setActiveMobileDay(d)}
+                      >
+                        <span className="plan-mobile-pill-num">
+                          {isCheckoutDay ? "Utsjekk" : `Dag ${d}`}
+                        </span>
+                        <span className="plan-mobile-pill-date">{fmtShort(date)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+              <div className="plan-mobile-day">
+                {renderDayCard(Math.min(Math.max(activeMobileDay, 1), totalDayCount), { noDrag: true })}
+              </div>
+            </div>
           ) : (
             <div className="plan-days">
-              {days.map((d) => {
-                const dayPlans = plans.filter((p) => p.day === d);
-                const date = addDays(checkIn, d - 1);
-                const prevName = isFirst ? null : state.locations[idx - 1]?.name?.trim() || null;
-                const nextName = isLast ? null : state.locations[idx + 1]?.name?.trim() || null;
-                const isFirstDay = d === 1;
-                const isCheckoutDay = includeCheckoutDay && d === totalDayCount;
-                const isLastNight = !includeCheckoutDay && d === totalDayCount;
-                return (
-                  <div
-                    key={d}
-                    className={`plan-day${isCheckoutDay ? " plan-day-checkout" : ""}`}
-                    {...dropTargetProps(d, `d-${d}`)}
-                  >
-                    <div className="plan-day-head">
-                      <span className="plan-day-num">{isCheckoutDay ? "Utsjekk" : `Dag ${d}`}</span>
-                      <span className="plan-day-date">{fmtShort(date)}</span>
-                    </div>
-                    <ul className="plan-list">
-                      {dayPlans.length === 0 ? (
-                        <li className="plan-empty">Slipp her</li>
-                      ) : (
-                        dayPlans.map((p) => (
-                          <PlanItem
-                            key={p.id}
-                            plan={p}
-                            onDragStart={onDragStart}
-                            onRemove={removePlan}
-                            onDropBefore={onDropBefore}
-                  onEdit={editPlan}
-                          />
-                        ))
-                      )}
-                    </ul>
-                    {isFirstDay && prevName ? (() => {
-                      const prevLoc = state.locations[idx - 1];
-                      if (!prevLoc?.includeCheckoutDay) return null;
-                      const ghostPlans = (prevLoc.plans ?? []).filter(
-                        (p) => p.day === prevLoc.days + 1,
-                      );
-                      if (ghostPlans.length === 0) return null;
-                      return (
-                        <div className="plan-day-ghost">
-                          <BodyShort size="small" textColor="subtle" className="plan-day-ghost-label">
-                            Planlagt fra «{prevName}»
-                          </BodyShort>
-                          <ul className="plan-list plan-list-ghost">
-                            {ghostPlans.map((p) => (
-                              <li key={p.id} className="plan-item plan-item-ghost">
-                                {p.kind === "travel" ? (p.note?.trim() || "Reise") : p.title}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      );
-                    })() : null}
-                    {isCheckoutDay && nextName ? (() => {
-                      const nextLoc = state.locations[idx + 1];
-                      const ghostPlans = (nextLoc?.plans ?? []).filter((p) => p.day === 1);
-                      if (ghostPlans.length === 0) return null;
-                      return (
-                        <div className="plan-day-ghost">
-                          <BodyShort size="small" textColor="subtle" className="plan-day-ghost-label">
-                            Allerede planlagt på «{nextName}»
-                          </BodyShort>
-                          <ul className="plan-list plan-list-ghost">
-                            {ghostPlans.map((p) => (
-                              <li key={p.id} className="plan-item plan-item-ghost">
-                                {p.kind === "travel" ? (p.note?.trim() || "Reise") : p.title}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      );
-                    })() : null}
-                    {(isFirstDay || isCheckoutDay || (isLastNight && nextName) || (isLastNight && isLast)) ? (
-                      <div className="plan-day-footer">
-                        {isFirstDay && prevName ? (
-                          <Tag variant="alt2" size="xsmall" className="plan-day-tag">
-                            Utsjekk «{prevName}»
-                          </Tag>
-                        ) : null}
-                        {isFirstDay ? (
-                          <Tag variant="info" size="xsmall" className="plan-day-tag">
-                            Innsjekk
-                          </Tag>
-                        ) : null}
-                        {isLastNight && nextName ? (
-                          <Tag variant="warning" size="xsmall" className="plan-day-tag">
-                            Utsjekk neste morgen
-                          </Tag>
-                        ) : null}
-                        {isCheckoutDay && nextName ? (
-                          <Tag variant="alt2" size="xsmall" className="plan-day-tag">
-                            Innsjekk «{nextName}»
-                          </Tag>
-                        ) : null}
-                        {((isLastNight && isLast) || (isCheckoutDay && isLast)) ? (
-                          <Tag variant="neutral" size="xsmall" className="plan-day-tag">
-                            Avreise
-                          </Tag>
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </div>
-                );
-              })}
+              {days.map((d) => renderDayCard(d))}
             </div>
           )}
         </section>
@@ -766,12 +859,18 @@ function PlanItem({
   onRemove,
   onDropBefore,
   onEdit,
+  noDrag,
+  onAdd,
+  addLabel,
 }: {
   plan: Plan;
   onDragStart: (e: DragEvent, planId: string) => void;
   onRemove: (planId: string) => void;
   onDropBefore: (draggedId: string, targetId: string) => void;
   onEdit: (planId: string, patch: Partial<Plan>) => void;
+  noDrag?: boolean;
+  onAdd?: () => void;
+  addLabel?: string;
 }) {
   const [dropActive, setDropActive] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -822,12 +921,16 @@ function PlanItem({
         "plan-item" +
         (isTravel ? " plan-item--travel" : "") +
         (dropActive ? " plan-item--drop-before" : "") +
-        (editing ? " plan-item--editing" : "")
+        (editing ? " plan-item--editing" : "") +
+        (noDrag ? " plan-item--nodrag" : "")
       }
-      draggable={!editing}
-      onDragStart={(e) => onDragStart(e, plan.id)}
+      draggable={!editing && !noDrag}
+      onDragStart={(e) => {
+        if (noDrag) return;
+        onDragStart(e, plan.id);
+      }}
       onDragOver={(e) => {
-        if (editing) return;
+        if (editing || noDrag) return;
         e.preventDefault();
         e.stopPropagation();
         e.dataTransfer.dropEffect = "move";
@@ -835,7 +938,7 @@ function PlanItem({
       }}
       onDragLeave={() => setDropActive(false)}
       onDrop={(e) => {
-        if (editing) return;
+        if (editing || noDrag) return;
         e.preventDefault();
         e.stopPropagation();
         setDropActive(false);
@@ -845,7 +948,9 @@ function PlanItem({
         if (draggedId) onDropBefore(draggedId, plan.id);
       }}
     >
-      <span className="plan-item-grip" aria-hidden="true">⋮⋮</span>
+      {noDrag ? null : (
+        <span className="plan-item-grip" aria-hidden="true">⋮⋮</span>
+      )}
       {editing ? (
         plan.kind === "plan" ? (
           <TextField
@@ -929,6 +1034,17 @@ function PlanItem({
         </>
       ) : (
         <>
+          {onAdd ? (
+            <button
+              type="button"
+              className="plan-item-action plan-item-add"
+              onClick={onAdd}
+              title={addLabel ?? "Legg til"}
+              aria-label={addLabel ?? "Legg til"}
+            >
+              <PlusIcon aria-hidden />
+            </button>
+          ) : null}
           <button
             type="button"
             className="plan-item-action plan-item-edit"

@@ -530,6 +530,70 @@ body {
     grid-template-columns: 1fr;
   }
 }
+@media (max-width: 700px) {
+  /* Mobile: calendar (with active day) appears above suggestions */
+  .plan-grid > .plan-calendar { order: 1; }
+  .plan-grid > .plan-suggestions { order: 2; }
+}
+.plan-mobile-calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.plan-mobile-pills {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 4px 2px 8px;
+  scroll-snap-type: x proximity;
+  position: sticky;
+  top: 0;
+  background: var(--trip-card-bg, #fff);
+  z-index: 1;
+  margin: -4px -2px 0;
+}
+.plan-mobile-pills::-webkit-scrollbar { height: 4px; }
+.plan-mobile-pill {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #d0d0d0;
+  background: #fff;
+  font: inherit;
+  cursor: pointer;
+  scroll-snap-align: center;
+  min-width: 64px;
+  line-height: 1.1;
+}
+.plan-mobile-pill:focus-visible {
+  outline: 2px solid var(--ax-text-action, #0067c5);
+  outline-offset: 2px;
+}
+.plan-mobile-pill--active {
+  background: var(--ax-text-action, #0067c5);
+  border-color: var(--ax-text-action, #0067c5);
+  color: #fff;
+}
+.plan-mobile-pill--checkout {
+  border-style: dashed;
+}
+.plan-mobile-pill-num {
+  font-size: 13px;
+  font-weight: 600;
+}
+.plan-mobile-pill-date {
+  font-size: 11px;
+  opacity: 0.85;
+}
+.plan-mobile-day .plan-day {
+  /* The single mobile day card spans full width within its section. */
+  width: 100%;
+}
+
 .plan-section {
   background: var(--trip-card-bg, #fff);
   border: 1px solid #e5e5e5;
@@ -768,6 +832,15 @@ body {
 }
 .plan-item-save {
   color: var(--ax-success-700, #06893a);
+}
+.plan-item-add {
+  color: var(--ax-text-action, #0067c5);
+}
+.plan-item-add:hover {
+  background: rgba(0, 103, 197, 0.08);
+}
+.plan-item--nodrag {
+  cursor: default;
 }
 .plan-item--editing {
   align-items: center;
