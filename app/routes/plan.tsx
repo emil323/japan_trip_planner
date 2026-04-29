@@ -691,7 +691,7 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
                           <ul className="plan-list plan-list-ghost">
                             {ghostPlans.map((p) => (
                               <li key={p.id} className="plan-item plan-item-ghost">
-                                {p.title}
+                                {p.kind === "travel" ? (p.note?.trim() || "Reise") : p.title}
                               </li>
                             ))}
                           </ul>
