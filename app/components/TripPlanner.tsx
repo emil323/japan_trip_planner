@@ -673,20 +673,24 @@ export function TripPlanner({ initialState }: { initialState?: TripState } = {})
     if (!hydrated) return;
     const myId = getClientId();
     // The very first snapshot fires immediately on subscribe and reflects the
-    // doc we just loaded — suppress its toast.
+    // doc we already loaded via the SSR loader. Re-applying it would clobber
+    // any local edits the user made during the SSE handshake (e.g. cycling
+    // through image candidates), so skip both the setState and the toast for
+    // that first event. Subsequent events are genuine remote updates.
     let initial = true;
     const unsubscribe = onTripUpdate(({ state: nextState, fromClientId, userEmail }) => {
       if (fromClientId && fromClientId === myId) {
         initial = false;
         return;
       }
+      if (initial) {
+        initial = false;
+        return;
+      }
       skipNextSaveRef.current = true;
       setState(nextState);
-      if (!initial) {
-        const who = userEmail ? userEmail : "noen andre";
-        setRemoteToast(`Reisen ble oppdatert av ${who}`);
-      }
-      initial = false;
+      const who = userEmail ? userEmail : "noen andre";
+      setRemoteToast(`Reisen ble oppdatert av ${who}`);
     });
     return () => unsubscribe();
   }, [hydrated]);
