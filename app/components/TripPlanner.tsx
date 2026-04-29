@@ -660,8 +660,14 @@ export function TripPlanner({ initialState }: { initialState?: TripState } = {})
       skipNextSaveRef.current = false;
       return;
     }
-    const t = window.setTimeout(() => {
-      void saveState(state);
+    const t = window.setTimeout(async () => {
+      const result = await saveState(state);
+      if (!result.ok) {
+        console.error("[saveState] failed", result);
+        setRemoteToast(
+          `Klarte ikke å lagre endringene${result.error ? `: ${result.error}` : ""}`,
+        );
+      }
     }, 400);
     return () => window.clearTimeout(t);
   }, [state, hydrated]);

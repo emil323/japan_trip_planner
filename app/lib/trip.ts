@@ -188,17 +188,28 @@ export function applyDaysChange(loc: Location, newDays: number): Location {
   };
 }
 
-export async function saveState(s: TripState): Promise<void> {
-  if (typeof window === "undefined") return;
+export type SaveResult = { ok: true } | { ok: false; status?: number; error?: string };
+
+export async function saveState(s: TripState): Promise<SaveResult> {
+  if (typeof window === "undefined") return { ok: false, error: "ssr" };
   try {
     const { getClientId } = await import("./identity");
-    await fetch("/api/trip", {
+    const res = await fetch("/api/trip", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ state: s, clientId: getClientId() }),
     });
-  } catch {
-    /* ignored — best-effort persistence; UI keeps working from in-memory state */
+    if (!res.ok) {
+      let error = `http_${res.status}`;
+      try {
+        const data = await res.clone().json();
+        if (data && typeof data.error === "string") error = data.error;
+      } catch { /* keep http status */ }
+      return { ok: false, status: res.status, error };
+    }
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
 
