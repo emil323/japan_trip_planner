@@ -130,7 +130,9 @@ export default function SummaryPage({ loaderData }: Route.ComponentProps) {
             const flag = flagForLocation(loc.name, 32);
             const plans = loc.plans ?? [];
             const suggestions = plans.filter((p) => p.day === null);
-            const allDays = Array.from({ length: loc.days }, (_, k) => k + 1);
+            const includeCheckout = !!loc.includeCheckoutDay && i < state.locations.length - 1;
+            const totalDayCount = loc.days + (includeCheckout ? 1 : 0);
+            const allDays = Array.from({ length: totalDayCount }, (_, k) => k + 1);
             // Each day starts on (arrival + offset + d - 1); the day is "past"
             // once today is strictly after that calendar date.
             const visibleDays = hidePast
@@ -218,15 +220,23 @@ export default function SummaryPage({ loaderData }: Route.ComponentProps) {
                   </div>
                 )}
 
-                {loc.days > 0 ? (
+                {totalDayCount > 0 ? (
                   <div className="summary-days">
                     {visibleDays.map((d) => {
                       const date = addDays(state.arrival, offsets[i] + d - 1);
                       const dayPlans = plans.filter((p) => p.day === d);
+                      const isCheckoutDay = includeCheckout && d === loc.days + 1;
                       return (
-                        <div key={d} className="summary-day">
+                        <div
+                          key={d}
+                          className={
+                            "summary-day" + (isCheckoutDay ? " summary-day-checkout" : "")
+                          }
+                        >
                           <div className="summary-day-head">
-                            <span className="summary-day-num">Dag {d}</span>
+                            <span className="summary-day-num">
+                              {isCheckoutDay ? "Reisedag" : `Dag ${d}`}
+                            </span>
                             <span className="summary-day-date">
                               {fmtShort(date)}
                             </span>

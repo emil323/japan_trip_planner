@@ -1031,6 +1031,11 @@ body {
   gap: 6px;
   min-height: 80px;
 }
+.summary-day-checkout {
+  background: #fbfbfb;
+  border-style: dashed;
+  border-color: #d6d6d6;
+}
 .summary-day-head {
   display: flex;
   justify-content: space-between;
