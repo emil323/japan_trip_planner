@@ -243,7 +243,14 @@ function LocationRow({
       setLoadingImg(true);
       try {
         const dataUrl = await urlToDataUrl(remote);
-        onChange({ imageUrl: dataUrl || remote });
+        const next = dataUrl || remote;
+        console.log("[cycleImage] applying new imageUrl", {
+          loc: loc.name,
+          idx,
+          isDataUrl: !!dataUrl,
+          length: next.length,
+        });
+        onChange({ imageUrl: next });
       } finally {
         setLoadingImg(false);
       }
@@ -657,16 +664,28 @@ export function TripPlanner({ initialState }: { initialState?: TripState } = {})
   useEffect(() => {
     if (!hydrated) return;
     if (skipNextSaveRef.current) {
+      console.log("[persist] skipping save (skipNextSaveRef was true)");
       skipNextSaveRef.current = false;
       return;
     }
     const t = window.setTimeout(async () => {
+      const imgLengths = state.locations.map((l) => (l.imageUrl ?? "").length);
+      const totalImgBytes = imgLengths.reduce((a, b) => a + b, 0);
+      console.log("[persist] saving", {
+        totalDays: state.totalDays,
+        locCount: state.locations.length,
+        imgLengths,
+        totalImgBytes,
+      });
       const result = await saveState(state);
       if (!result.ok) {
         console.error("[saveState] failed", result);
         setRemoteToast(
           `Klarte ikke å lagre endringene${result.error ? `: ${result.error}` : ""}`,
         );
+      } else {
+        console.log("[saveState] ok");
+        setRemoteToast("Lagret ✓");
       }
     }, 400);
     return () => window.clearTimeout(t);
@@ -685,6 +704,12 @@ export function TripPlanner({ initialState }: { initialState?: TripState } = {})
     // that first event. Subsequent events are genuine remote updates.
     let initial = true;
     const unsubscribe = onTripUpdate(({ state: nextState, fromClientId, userEmail }) => {
+      console.log("[SSE] update received", {
+        fromSelf: fromClientId === myId,
+        initial,
+        userEmail,
+        imgLengths: nextState.locations.map((l) => (l.imageUrl ?? "").length),
+      });
       if (fromClientId && fromClientId === myId) {
         initial = false;
         return;
@@ -731,10 +756,13 @@ export function TripPlanner({ initialState }: { initialState?: TripState } = {})
     setState((s) => reconcile({ ...s, totalDays: Math.max(1, n) }));
 
   const updateLoc = (i: number, patch: Partial<{ name: string; hotel: string; url: string; imageUrl: string }>) =>
-    setState((s) => ({
-      ...s,
-      locations: s.locations.map((l, j) => (j === i ? { ...l, ...patch } : l)),
-    }));
+    setState((s) => {
+      console.log("[updateLoc]", { i, patchKeys: Object.keys(patch), name: s.locations[i]?.name });
+      return {
+        ...s,
+        locations: s.locations.map((l, j) => (j === i ? { ...l, ...patch } : l)),
+      };
+    });
 
   const removeLoc = (i: number) =>
     setState((s) => {
