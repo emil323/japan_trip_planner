@@ -1,4 +1,4 @@
-import { type DragEvent, useEffect, useRef, useState } from "react";
+import { type DragEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 import type { Route } from "./+types/plan";
 import {
@@ -57,9 +57,12 @@ export async function loader(_: Route.LoaderArgs) {
 const DRAG_MIME = "application/x-japan-plan-id";
 
 function useIsMobile(query = "(max-width: 700px)"): boolean {
-  // SSR-safe: starts false; resolves on the client after mount via matchMedia.
+  // SSR-safe: starts false; resolves before paint on the client via
+  // useLayoutEffect (with useEffect fallback on the server) to avoid a
+  // visible desktop→mobile flash on hydration.
+  const useIso = typeof window !== "undefined" ? useLayoutEffect : useEffect;
   const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
+  useIso(() => {
     if (typeof window === "undefined" || !window.matchMedia) return;
     const mql = window.matchMedia(query);
     const update = () => setIsMobile(mql.matches);

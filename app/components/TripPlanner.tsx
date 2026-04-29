@@ -1,4 +1,4 @@
-import { type DragEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type DragEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import {
   ActionMenu,
@@ -45,6 +45,12 @@ import { flagForLocation, prefectureNameFor } from "../lib/japan";
 import { getCachedImages, setCachedImages } from "../lib/imageCache";
 import { urlToDataUrl } from "../lib/imageData";
 import { SegmentedSlider } from "./SegmentedSlider";
+
+// Run synchronously before paint on the client; fall back to useEffect on the
+// server so React doesn't warn about useLayoutEffect during SSR. Lets us flip
+// state from localStorage / matchMedia after hydration without a visible flash.
+const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 function ArrivalPicker({
   value,
@@ -596,7 +602,7 @@ export function TripPlanner({ initialState }: { initialState?: TripState } = {})
   // Track narrow viewports so we can force the cards view (the rows view has
   // 11 fixed columns and just doesn't fit on phones) and hide the view toggle.
   const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (typeof window === "undefined") return;
     const mq = window.matchMedia("(max-width: 700px)");
     const update = () => setIsMobile(mq.matches);
@@ -612,7 +618,9 @@ export function TripPlanner({ initialState }: { initialState?: TripState } = {})
   // just read view preference from localStorage. Otherwise, fall back to the
   // legacy client-side fetch (defensive — all routes that render TripPlanner
   // now provide initialState).
-  useEffect(() => {
+  // useIsomorphicLayoutEffect so the localStorage view preference is applied
+  // BEFORE the browser paints, eliminating the "cards → rows" flash on load.
+  useIsomorphicLayoutEffect(() => {
     if (initialState) {
       try {
         const v = window.localStorage.getItem("tripView:v1");
