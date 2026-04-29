@@ -628,14 +628,16 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
           <BodyShort textColor="subtle" size="small">
             Én kolonne per dag. Dra forslag inn for å planlegge.
           </BodyShort>
-          <Switch
-            size="small"
-            checked={includeCheckoutDay}
-            onChange={(e) => toggleIncludeCheckoutDay(e.target.checked)}
-            className="plan-include-checkout"
-          >
-            Bruk utsjekkingsdato i {loc.name || "stedet"}
-          </Switch>
+          {!isLast ? (
+            <Switch
+              size="small"
+              checked={includeCheckoutDay}
+              onChange={(e) => toggleIncludeCheckoutDay(e.target.checked)}
+              className="plan-include-checkout"
+            >
+              Bruk utsjekkingsdato i {loc.name || "stedet"}
+            </Switch>
+          ) : null}
 
           {loc.days === 0 ? (
             <Alert variant="warning" size="small">
@@ -677,6 +679,25 @@ export default function PlanPage({ loaderData }: Route.ComponentProps) {
                         ))
                       )}
                     </ul>
+                    {isCheckoutDay && nextName ? (() => {
+                      const nextLoc = state.locations[idx + 1];
+                      const ghostPlans = (nextLoc?.plans ?? []).filter((p) => p.day === 1);
+                      if (ghostPlans.length === 0) return null;
+                      return (
+                        <div className="plan-day-ghost">
+                          <BodyShort size="small" textColor="subtle" className="plan-day-ghost-label">
+                            Allerede planlagt på «{nextName}»
+                          </BodyShort>
+                          <ul className="plan-list plan-list-ghost">
+                            {ghostPlans.map((p) => (
+                              <li key={p.id} className="plan-item plan-item-ghost">
+                                {p.title}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      );
+                    })() : null}
                     {(isFirstDay || isCheckoutDay || (isLastNight && nextName) || (isLastNight && isLast)) ? (
                       <div className="plan-day-footer">
                         {isFirstDay && prevName ? (
