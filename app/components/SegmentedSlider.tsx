@@ -37,6 +37,19 @@ export function SegmentedSlider({ state, onBoundaryChange, onMoveLocation }: Pro
   const total = state.totalDays;
   const locs = state.locations;
 
+  // True when reordering `from` → `to` would shift or land on a locked segment.
+  // Locked segments are anchors; their date period must not be replaced.
+  const moveBlockedByLock = (from: number | null, to: number) => {
+    if (from === null || from === to) return false;
+    const lo = Math.min(from, to);
+    const hi = Math.max(from, to);
+    for (let i = lo; i <= hi; i++) {
+      if (i === from) continue;
+      if (locs[i]?.locked) return true;
+    }
+    return false;
+  };
+
   useEffect(() => {
     const fit = () => {
       const segs = segRefs.current.filter(Boolean) as HTMLDivElement[];
@@ -150,13 +163,18 @@ export function SegmentedSlider({ state, onBoundaryChange, onMoveLocation }: Pro
         onDragOver={(e) => {
           if (reorderSrc === null) return;
           if (loc.locked) return;
+          if (moveBlockedByLock(reorderSrc, i)) {
+            e.dataTransfer.dropEffect = "none";
+            if (reorderOver !== null) setReorderOver(null);
+            return;
+          }
           e.preventDefault();
           e.dataTransfer.dropEffect = "move";
           if (reorderOver !== i) setReorderOver(i);
         }}
         onDrop={(e) => {
           e.preventDefault();
-          if (loc.locked) {
+          if (loc.locked || moveBlockedByLock(reorderSrc, i)) {
             setReorderSrc(null);
             setReorderOver(null);
             return;
