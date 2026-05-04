@@ -461,16 +461,24 @@ function LocationRow({
     const url = (loc.url || "").trim();
     return (
       <div className="trip-url-field">
-        <TextField
-          label="Bookinglenke"
-          size="small"
-          hideLabel={!showLabel}
-          type="url"
-          value={loc.url || ""}
-          placeholder="https://..."
-          disabled={locked}
-          onChange={(e) => onChange({ url: e.target.value })}
-        />
+        {locked ? (
+          <div className="trip-loc-readonly trip-loc-readonly--url">
+            {showLabel ? <span className="trip-loc-readonly-label">Bookinglenke</span> : null}
+            <span className="trip-loc-readonly-value" title={url}>
+              {url || <em className="trip-loc-readonly-empty">Ingen lenke</em>}
+            </span>
+          </div>
+        ) : (
+          <TextField
+            label="Bookinglenke"
+            size="small"
+            hideLabel={!showLabel}
+            type="url"
+            value={loc.url || ""}
+            placeholder="https://..."
+            onChange={(e) => onChange({ url: e.target.value })}
+          />
+        )}
         <CopyButton
           size="small"
           copyText={url}
@@ -507,23 +515,33 @@ function LocationRow({
       >
         {dragHandle}
         {flagEl}
-        <TextField
-          label="Sted"
-          size="small"
-          hideLabel
-          value={loc.name}
-          disabled={locked}
-          onChange={(e) => onChange({ name: e.target.value })}
-        />
-        <TextField
-          label="Hotell"
-          size="small"
-          hideLabel
-          value={loc.hotel}
-          placeholder="Hotellnavn"
-          disabled={locked}
-          onChange={(e) => onChange({ hotel: e.target.value })}
-        />
+        {locked ? (
+          <span className="trip-loc-readonly-value trip-loc-readonly-name" title={loc.name}>
+            {loc.name || <em className="trip-loc-readonly-empty">(uten navn)</em>}
+          </span>
+        ) : (
+          <TextField
+            label="Sted"
+            size="small"
+            hideLabel
+            value={loc.name}
+            onChange={(e) => onChange({ name: e.target.value })}
+          />
+        )}
+        {locked ? (
+          <span className="trip-loc-readonly-value trip-loc-readonly-hotel" title={loc.hotel}>
+            {loc.hotel || <em className="trip-loc-readonly-empty">Ingen hotell</em>}
+          </span>
+        ) : (
+          <TextField
+            label="Hotell"
+            size="small"
+            hideLabel
+            value={loc.hotel}
+            placeholder="Hotellnavn"
+            onChange={(e) => onChange({ hotel: e.target.value })}
+          />
+        )}
         {urlField(false)}
         {imageEl}
         <div className="trip-date-range">
@@ -556,14 +574,19 @@ function LocationRow({
         {dragHandle}
         {flagEl}
         <div className="trip-loc-card-title">
-          <TextField
-            label="Sted"
-            size="small"
-            hideLabel
-            value={loc.name}
-            disabled={locked}
-            onChange={(e) => onChange({ name: e.target.value })}
-          />
+          {locked ? (
+            <span className="trip-loc-readonly-value trip-loc-readonly-title" title={loc.name}>
+              {loc.name || <em className="trip-loc-readonly-empty">(uten navn)</em>}
+            </span>
+          ) : (
+            <TextField
+              label="Sted"
+              size="small"
+              hideLabel
+              value={loc.name}
+              onChange={(e) => onChange({ name: e.target.value })}
+            />
+          )}
         </div>
         <div className="trip-days-pill">
           {loc.days} {loc.days === 1 ? "natt" : "netter"}
@@ -574,14 +597,22 @@ function LocationRow({
       <div className="trip-loc-card-body">
         {imageEl}
         <div className="trip-loc-card-fields">
-          <TextField
-            label="Hotell"
-            size="small"
-            value={loc.hotel}
-            placeholder="Hotellnavn"
-            disabled={locked}
-            onChange={(e) => onChange({ hotel: e.target.value })}
-          />
+          {locked ? (
+            <div className="trip-loc-readonly">
+              <span className="trip-loc-readonly-label">Hotell</span>
+              <span className="trip-loc-readonly-value" title={loc.hotel}>
+                {loc.hotel || <em className="trip-loc-readonly-empty">Ingen hotell</em>}
+              </span>
+            </div>
+          ) : (
+            <TextField
+              label="Hotell"
+              size="small"
+              value={loc.hotel}
+              placeholder="Hotellnavn"
+              onChange={(e) => onChange({ hotel: e.target.value })}
+            />
+          )}
           {urlField(true)}
         </div>
       </div>

@@ -312,6 +312,42 @@ body {
   color: var(--ax-text-warning, #a05a00);
 }
 
+/* Read-only "label" rendering used in place of disabled inputs when a
+   location is locked. Reads as static text rather than a greyed-out form
+   field, which is much clearer that editing isn't possible (vs. broken). */
+.trip-loc-readonly {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.trip-loc-readonly--url {
+  flex: 1 1 auto;
+}
+.trip-loc-readonly-label {
+  font-size: 12px;
+  color: var(--ax-text-subtle, #5c6773);
+  font-weight: 500;
+}
+.trip-loc-readonly-value {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ax-text-default, #1f2933);
+  font-size: 14px;
+  line-height: 1.4;
+}
+.trip-loc-readonly-title {
+  font-weight: 600;
+  font-size: 16px;
+}
+.trip-loc-readonly-empty {
+  color: var(--ax-text-subtle, #8c98a4);
+  font-style: italic;
+}
+
 .trip-flag-wrap {
   display: inline-block;
   width: 40px;
