@@ -766,11 +766,32 @@ export function TripPlanner({ initialState }: { initialState?: TripState } = {})
       if (from === to || from < 0 || to < 0 || from >= s.locations.length || to >= s.locations.length) {
         return s;
       }
+      // Locked locations are anchors — they must keep their date period, so a
+      // reorder that would move (or move past) any locked location is rejected.
+      const lo = Math.min(from, to);
+      const hi = Math.max(from, to);
+      for (let i = lo; i <= hi; i++) {
+        if (i === from) continue;
+        if (s.locations[i]?.locked) return s;
+      }
       const locs = s.locations.slice();
       const [moved] = locs.splice(from, 1);
       locs.splice(to, 0, moved);
       return { ...s, locations: locs };
     });
+
+  // True when reordering `from` → `to` would move or cross a locked location.
+  // Used to grey out invalid drop targets during drag-and-drop.
+  const moveBlockedByLock = (from: number | null, to: number) => {
+    if (from === null || from === to) return false;
+    const lo = Math.min(from, to);
+    const hi = Math.max(from, to);
+    for (let i = lo; i <= hi; i++) {
+      if (i === from) continue;
+      if (state.locations[i]?.locked) return true;
+    }
+    return false;
+  };
 
   const toggleLock = (i: number) =>
     setState((s) => ({
@@ -948,13 +969,24 @@ export function TripPlanner({ initialState }: { initialState?: TripState } = {})
               }}
               onDragOver={(e) => {
                 if (dragSrc === null) return;
+                if (moveBlockedByLock(dragSrc, i)) {
+                  e.dataTransfer.dropEffect = "none";
+                  if (dragOver !== null) setDragOver(null);
+                  return;
+                }
                 e.preventDefault();
                 e.dataTransfer.dropEffect = "move";
                 if (dragOver !== i) setDragOver(i);
               }}
               onDrop={(e) => {
                 e.preventDefault();
-                if (dragSrc !== null && dragSrc !== i) moveLoc(dragSrc, i);
+                if (
+                  dragSrc !== null &&
+                  dragSrc !== i &&
+                  !moveBlockedByLock(dragSrc, i)
+                ) {
+                  moveLoc(dragSrc, i);
+                }
                 setDragSrc(null);
                 setDragOver(null);
               }}
