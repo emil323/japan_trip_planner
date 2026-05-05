@@ -12,3 +12,4 @@ firestore-debug.log
 /playwright-report/
 /test-results/
 /playwright/.cache/
+.idea/
